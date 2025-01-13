@@ -15,6 +15,9 @@ class GLCamera {
   double pos_x = 0;
   double pos_y = 0;
   double pos_z = 0;
+  double to_x = 0;
+  double to_y = 0;
+  double to_z = 0;
   double heading = 0;
   double pitch = 0;
   double roll = 0;
@@ -56,6 +59,17 @@ class GLCamera {
     this->heading = atan2f(d[0], d[2]);
     this->roll = MathUtils::toRadians(180);
     this->setPosition(fx, fy, fz);
+    this->to_x = tx;
+    this->to_y = ty;
+    this->to_z = tz;
+  }
+
+  void moveForward(double factor) {
+    Eigen::Vector3d v(this->to_x - this->pos_x, this->to_y - this->pos_y, this->to_z - this->pos_z);
+    v = v.normalized() * factor;
+    Eigen::Vector3d from(this->pos_x, this->pos_y, this->pos_z);
+    from = from + v;
+    lookAt(from[0], from[1], from[2], this->to_x, this->to_y, this->to_z);
   }
 
   Eigen::Matrix4d viewMatrix() {

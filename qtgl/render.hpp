@@ -15,6 +15,7 @@ namespace qtgl {
 class GLRenderWidget : public QWidget {
  private:
   GLScene scene;
+  double wheelMoveForwardFactor = 1.0 / 120 * 10;
   std::function<void(GLScene&)> beforeRender = [](GLScene& scene) {};
 
  public:
@@ -56,7 +57,9 @@ class GLRenderWidget : public QWidget {
     QPoint pos = event->pos();
     std::cout << "MOUSE MOVE: " << pos.x() << "," << pos.y() << std::endl;
   }
-  void wheelEvent(QWheelEvent* event) override { std::cout << "WHEEL EVENT!" << std::endl; }
+  void wheelEvent(QWheelEvent* event) override {
+    this->scene.getCamera().moveForward(event->angleDelta().y() * wheelMoveForwardFactor);
+  }
 };
 
 class GLPointLightHelper : public QWidget {
