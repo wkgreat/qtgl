@@ -17,6 +17,7 @@ class GLRenderWidget : public QWidget {
   GLScene scene;
   double wheelMoveForwardFactor = 1.0 / 120 * 10;
   std::function<void(GLScene&)> beforeRender = [](GLScene& scene) {};
+  int mouseLastX, mouseLastY;
 
  public:
   GLRenderWidget(QWidget* parent = nullptr) : QWidget(parent) {
@@ -51,11 +52,24 @@ class GLRenderWidget : public QWidget {
 
   void mousePressEvent(QMouseEvent* event) override {
     QPoint pos = event->pos();
+    mouseLastX = pos.x();
+    mouseLastY = pos.y();
     std::cout << "MOUSE PRESS: " << pos.x() << "," << pos.y() << std::endl;
   }
   void mouseMoveEvent(QMouseEvent* event) override {
     QPoint pos = event->pos();
-    std::cout << "MOUSE MOVE: " << pos.x() << "," << pos.y() << std::endl;
+    if (event->buttons() & Qt::MiddleButton) {
+      this->scene.getCamera().moveAside(pos.x() - mouseLastX, pos.y() - mouseLastY);
+
+      mouseLastX = pos.x();
+      mouseLastY = pos.y();
+
+      std::cout << "MOUSE MOVE (Mid): " << pos.x() << "," << pos.y() << std::endl;
+    } else if (event->buttons() & Qt::LeftButton) {
+      std::cout << "MOUSE MOVE (Left): " << pos.x() << "," << pos.y() << std::endl;
+    } else if (event->buttons() & Qt::RightButton) {
+      std::cout << "MOUSE MOVE (Right): " << pos.x() << "," << pos.y() << std::endl;
+    }
   }
   void wheelEvent(QWheelEvent* event) override {
     this->scene.getCamera().moveForward(event->angleDelta().y() * wheelMoveForwardFactor);

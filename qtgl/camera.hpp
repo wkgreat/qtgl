@@ -6,9 +6,9 @@
 
 namespace qtgl {
 /*
-Heading : Yaw
-Pitch : Pitch
-Roll : Roll
+Heading(Yaw)  绕Z轴逆时针旋转
+Pitch         绕X轴逆时针旋转
+Roll          绕Y轴逆时针旋转
 */
 class GLCamera {
  private:
@@ -62,6 +62,18 @@ class GLCamera {
     this->to_x = tx;
     this->to_y = ty;
     this->to_z = tz;
+  }
+
+  void moveAside(double x, double y) {
+    Eigen::Matrix4d viewMtx = viewMatrix();
+    Eigen::Vector3d xbasis = viewMtx.row(0).head(3);
+    Eigen::Vector3d ybasis = viewMtx.row(1).head(3);
+    Eigen::Vector3d from(this->pos_x, this->pos_y, this->pos_z);
+    Eigen::Vector3d to(this->to_x, this->to_y, this->to_z);
+    Eigen::Vector3d d = xbasis * -x + ybasis * -y;
+    from = from + d;
+    to = to + d;
+    lookAt(from[0], from[1], from[2], to[0], to[1], to[2]);
   }
 
   void moveForward(double factor) {
