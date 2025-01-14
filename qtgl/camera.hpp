@@ -84,6 +84,30 @@ class GLCamera {
     lookAt(from[0], from[1], from[2], this->to_x, this->to_y, this->to_z);
   }
 
+  void roundBy(double right, double up) {
+    Eigen::Vector4d from(this->pos_x, this->pos_y, this->pos_z, 1);
+    Eigen::Vector4d to(this->to_x, this->to_y, this->to_z, 1);
+    Eigen::Matrix4d mtx;
+    Vertices m = static_cast<Vertices>(Eigen::Matrix4d::Identity());
+    m = AffineUtils::translate(m, -to_x, -to_y, -to_z);
+    m = AffineUtils::rotate_y(m, -heading);
+    m = AffineUtils::rotate_x(m, -pitch);
+    m = AffineUtils::rotate_z(m, -roll);
+    mtx = static_cast<Eigen::Matrix4d>(m);
+    from = from.transpose() * mtx;
+
+    Eigen::Matrix4d mtx2;
+    Vertices m2 = static_cast<Vertices>(Eigen::Matrix4d::Identity());
+    m2 = static_cast<Vertices>(Eigen::Matrix4d::Identity());
+    m2 = AffineUtils::rotate_x(m2, up);
+    m2 = AffineUtils::rotate_y(m2, right);
+    mtx2 = static_cast<Eigen::Matrix4d>(m2);
+    from = from.transpose() * mtx2;
+
+    from = from.transpose() * (mtx.inverse());
+    this->lookAt(from[0], from[1], from[2], to_x, to_y, to_z);
+  }
+
   Eigen::Matrix4d viewMatrix() {
     Eigen::Matrix4d eyeMtx = Eigen::Matrix4d::Identity();
     Vertices rotateMtx = static_cast<Vertices>(eyeMtx);

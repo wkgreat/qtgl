@@ -15,9 +15,11 @@ namespace qtgl {
 class GLRenderWidget : public QWidget {
  private:
   GLScene scene;
-  double wheelMoveForwardFactor = 1.0 / 120 * 10;
+  double wheelMoveForwardFactor = 1.0 / 120 * 20;
   std::function<void(GLScene&)> beforeRender = [](GLScene& scene) {};
   int mouseLastX, mouseLastY;
+  double mouseXRoundFactor = 0.01;
+  double mouseYRoundFactor = -0.01;
 
  public:
   GLRenderWidget(QWidget* parent = nullptr) : QWidget(parent) {
@@ -54,22 +56,20 @@ class GLRenderWidget : public QWidget {
     QPoint pos = event->pos();
     mouseLastX = pos.x();
     mouseLastY = pos.y();
-    std::cout << "MOUSE PRESS: " << pos.x() << "," << pos.y() << std::endl;
   }
   void mouseMoveEvent(QMouseEvent* event) override {
     QPoint pos = event->pos();
     if (event->buttons() & Qt::MiddleButton) {
       this->scene.getCamera().moveAside(pos.x() - mouseLastX, pos.y() - mouseLastY);
-
-      mouseLastX = pos.x();
-      mouseLastY = pos.y();
-
-      std::cout << "MOUSE MOVE (Mid): " << pos.x() << "," << pos.y() << std::endl;
     } else if (event->buttons() & Qt::LeftButton) {
-      std::cout << "MOUSE MOVE (Left): " << pos.x() << "," << pos.y() << std::endl;
+      int dx = pos.x() - mouseLastX;
+      int dy = pos.y() - mouseLastY;
+      this->scene.getCamera().roundBy(dx * mouseXRoundFactor, dy * mouseYRoundFactor);
     } else if (event->buttons() & Qt::RightButton) {
-      std::cout << "MOUSE MOVE (Right): " << pos.x() << "," << pos.y() << std::endl;
+      // do nothing
     }
+    mouseLastX = pos.x();
+    mouseLastY = pos.y();
   }
   void wheelEvent(QWheelEvent* event) override {
     this->scene.getCamera().moveForward(event->angleDelta().y() * wheelMoveForwardFactor);
