@@ -89,6 +89,13 @@ class GLScene {
     return v;
   }
 
+  Vertice screenVerticeBackToCameraVertice(Vertice v) {
+    v = v.transpose() * invTransformMatrix;
+    v /= v[3];
+    v = v.transpose() * this->getCamera().viewMatrix();
+    return v;
+  }
+
   void meshTransformToScreen(GLObject* obj);
 
   Fragments initFragmentsBuffer() {

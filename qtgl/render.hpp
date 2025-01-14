@@ -15,11 +15,14 @@ namespace qtgl {
 class GLRenderWidget : public QWidget {
  private:
   GLScene scene;
-  double wheelMoveForwardFactor = 1.0 / 120 * 20;
   std::function<void(GLScene&)> beforeRender = [](GLScene& scene) {};
+
+  double wheelMoveForwardFactor = 1.0 / 120 * 20;
   int mouseLastX, mouseLastY;
   double mouseXRoundFactor = 0.01;
   double mouseYRoundFactor = -0.01;
+  double mouseXMoveFactor = 20;
+  double mouseYMoveFactor = 20;
 
  public:
   GLRenderWidget(QWidget* parent = nullptr) : QWidget(parent) {
@@ -58,21 +61,27 @@ class GLRenderWidget : public QWidget {
     mouseLastY = pos.y();
   }
   void mouseMoveEvent(QMouseEvent* event) override {
+    // TODO move follow mouse
     QPoint pos = event->pos();
-    if (event->buttons() & Qt::MiddleButton) {
-      this->scene.getCamera().moveAside(pos.x() - mouseLastX, pos.y() - mouseLastY);
-    } else if (event->buttons() & Qt::LeftButton) {
+    if (event->buttons() & Qt::MiddleButton) {  // 平移;
+      Vertice lastMousePos(mouseLastX, mouseLastY, 1, 1);
+      Vertice mousePos(pos.x(), pos.y(), 1, 1);
+      lastMousePos = this->scene.screenVerticeBackToCameraVertice(lastMousePos);
+      mousePos = this->scene.screenVerticeBackToCameraVertice(mousePos);
+      this->scene.getCamera().move((mousePos[0] - lastMousePos[0]) * mouseXMoveFactor,
+                                   (mousePos[1] - lastMousePos[1]) * mouseXMoveFactor);
+    } else if (event->buttons() & Qt::LeftButton) {  // 环绕
       int dx = pos.x() - mouseLastX;
       int dy = pos.y() - mouseLastY;
-      this->scene.getCamera().roundBy(dx * mouseXRoundFactor, dy * mouseYRoundFactor);
+      this->scene.getCamera().round(dx * mouseXRoundFactor, dy * mouseYRoundFactor);
     } else if (event->buttons() & Qt::RightButton) {
       // do nothing
     }
     mouseLastX = pos.x();
     mouseLastY = pos.y();
   }
-  void wheelEvent(QWheelEvent* event) override {
-    this->scene.getCamera().moveForward(event->angleDelta().y() * wheelMoveForwardFactor);
+  void wheelEvent(QWheelEvent* event) override {  // 缩放
+    this->scene.getCamera().zoom(event->angleDelta().y() * wheelMoveForwardFactor);
   }
 };
 

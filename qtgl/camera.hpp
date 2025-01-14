@@ -64,7 +64,7 @@ class GLCamera {
     this->to_z = tz;
   }
 
-  void moveAside(double x, double y) {
+  void move(double x, double y) {
     Eigen::Matrix4d viewMtx = viewMatrix();
     Eigen::Vector3d xbasis = viewMtx.row(0).head(3);
     Eigen::Vector3d ybasis = viewMtx.row(1).head(3);
@@ -76,7 +76,7 @@ class GLCamera {
     lookAt(from[0], from[1], from[2], to[0], to[1], to[2]);
   }
 
-  void moveForward(double factor) {
+  void zoom(double factor) {
     Eigen::Vector3d v(this->to_x - this->pos_x, this->to_y - this->pos_y, this->to_z - this->pos_z);
     v = v.normalized() * factor;
     Eigen::Vector3d from(this->pos_x, this->pos_y, this->pos_z);
@@ -84,7 +84,7 @@ class GLCamera {
     lookAt(from[0], from[1], from[2], this->to_x, this->to_y, this->to_z);
   }
 
-  void roundBy(double right, double up) {
+  void round(double right, double up) {
     Eigen::Vector4d from(this->pos_x, this->pos_y, this->pos_z, 1);
     Eigen::Vector4d to(this->to_x, this->to_y, this->to_z, 1);
     Eigen::Matrix4d mtx;
