@@ -104,5 +104,15 @@ class GLScene {
   }
 
   void draw(QPainter& painter);
+
+  bool isTriangleBack(Vertice& rp0, Vertice& rp1, Vertice& rp2, Normal& n0, Normal& n1,
+                      Normal& n2) {
+    Eigen::Vector3d p = ((rp0 + rp1 + rp2) / 3).head(3);
+    Eigen::Vector3d n = (n0 + n1 + n2).head(3).normalized();
+    Eigen::Vector3d c = this->getCamera().getPositionVertice().head(3);
+    Eigen::Vector3d v1 = n;
+    Eigen::Vector3d v2 = (c - p).head(3).normalized();
+    return v1.dot(v2) < 0;
+  }
 };
 }  // namespace qtgl

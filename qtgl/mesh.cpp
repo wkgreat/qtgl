@@ -12,12 +12,20 @@ void GLMeshGroup::rasterize(GLScene& scene) {
     Index3 idx = indices.row(i);
     NormIndex normIdx = normIndices.row(i);
     TexRef ref = texrefs[i];
+    Vertice rp0 = parent->getVertices().row(idx[0]);
+    Vertice rp1 = parent->getVertices().row(idx[1]);
+    Vertice rp2 = parent->getVertices().row(idx[2]);
     Vertice p0 = parent->getTransformedVertices().row(idx[0]);
     Vertice p1 = parent->getTransformedVertices().row(idx[1]);
     Vertice p2 = parent->getTransformedVertices().row(idx[2]);
     Normal n0 = parent->getTransformedNormals().row(normIdx[0]).normalized();
     Normal n1 = parent->getTransformedNormals().row(normIdx[1]).normalized();
     Normal n2 = parent->getTransformedNormals().row(normIdx[2]).normalized();
+
+    // 背面剔除
+    if (scene.isTriangleBack(rp0, rp1, rp2, n0, n1, n2)) {
+      continue;
+    }
 
     GLMaterial* material = parent->getMaterial(ref.mtlname);
 
