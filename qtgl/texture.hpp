@@ -42,9 +42,12 @@ class GLTexture {
   }
 };
 
+enum class InterpolateMethod { LIINEAR, BILINEAR };
+
 class InterpolateGLTexture : public GLTexture {
  public:
   cv::Mat mat;
+  InterpolateMethod interpolateMtd = InterpolateMethod::BILINEAR;
   InterpolateGLTexture() = default;
   ~InterpolateGLTexture() = default;
   InterpolateGLTexture(std::string mapref) {
@@ -56,14 +59,51 @@ class InterpolateGLTexture : public GLTexture {
     this->mat = img;
   };
 
-  // TODO 双线性插值
   Color01 sample(TexCoord& coord) {
-    int i = round(mat.rows - coord[1] * mat.rows);
-    int j = round(coord[0] * mat.cols);
-    i = MAX(0, i);  // TODO 临时添加
-    j = MAX(0, j);  // TODO 临时添加
-    cv::Vec3b v = mat.at<cv::Vec3b>(i % mat.rows, j % mat.cols);
-    Color01 c(v[0] / 255.0, v[1] / 255.0, v[2] / 255.0, 1);
+    switch (interpolateMtd) {
+      case InterpolateMethod::LIINEAR:
+        return sample_linear(coord);
+      case InterpolateMethod::BILINEAR:
+        return sample_bilinear(coord);
+    };
+  }
+
+  Color01 colorAt(int u, int v) {
+    while (u < 0) u += mat.cols;
+    while (v < 0) v += mat.rows;
+    cv::Vec3b c = mat.at<cv::Vec3b>(v % mat.rows, u % mat.cols);
+    return {c[0] / 255.0, c[1] / 255.0, c[2] / 255.0, 1};
+  }
+
+  /*
+  linear interplation
+  Fundamental of Computer Graphics P251 11.2.2
+  */
+  Color01 sample_linear(TexCoord& coord) {
+    int v = round(mat.rows - coord[1] * mat.rows);
+    int u = round(coord[0] * mat.cols);
+    return colorAt(u, v);
+  }
+
+  /*
+  bilinear interplation
+  Fundamental of Computer Graphics P264
+  */
+  Color01 sample_bilinear(TexCoord& coord) {
+    int vp = mat.rows - coord[1] * mat.rows;
+    int up = coord[0] * mat.cols;
+    int iv0 = static_cast<int>(vp);
+    int iu0 = static_cast<int>(up);
+    int iv1 = iv0 + 1;
+    int iu1 = iu0 + 1;
+    double av = iv1 - vp;
+    double au = iu1 - up;
+
+    Color01 c00 = colorAt(iu0, iv0) * au * av;
+    Color01 c01 = colorAt(iu0, iv1) * au * (1 - av);
+    Color01 c10 = colorAt(iu1, iv0) * (1 - au) * av;
+    Color01 c11 = colorAt(iu1, iv1) * (1 - au) * (1 - av);
+    Color01 c = c00 + c01 + c10 + c11;
     return c;
   }
 };
