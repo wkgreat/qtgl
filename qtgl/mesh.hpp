@@ -218,6 +218,8 @@ class GLMesh : public GLObject {
     }
   }
 
+  std::map<std::string, GLMaterial*>& getMaterials() { return materials; }
+
   void addIndex3(Index3 idx) { addIndex3(const_cast<std::string&>(defaultGroup), idx); }
   void addIndex3(Index3 idx, Color01 clr0, Color01 clr1, Color01 clr2) {
     addIndex3(const_cast<std::string&>(defaultGroup), idx, clr0, clr1, clr2);

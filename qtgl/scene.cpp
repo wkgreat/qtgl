@@ -3,6 +3,15 @@
 
 namespace qtgl {
 
+GLScene::GLScene(double viewHeight, double viewWidth)
+    : viewHeight(viewHeight), viewWidth(viewWidth) {
+  this->projection.height = viewHeight;
+  this->projection.width = viewWidth;
+  this->shadermap[IlluminationModel::LAMBERTIAN] = new LambertianGLShader();
+  this->shadermap[IlluminationModel::LAMBERTIAN_BLINN_PHONG] = new LambertialBlinnPhongGLShader();
+  this->configuration = new GLSceneConfiguration(this);
+}
+
 GLScene::~GLScene() {
   for (GLObject* obj : objs) {
     delete obj;
@@ -13,6 +22,7 @@ GLScene::~GLScene() {
   for (auto s : shadermap) {
     delete s.second;
   }
+  delete configuration;
 }
 
 void GLScene::meshTransformToScreen(GLObject* obj) {
@@ -55,4 +65,31 @@ void GLScene::draw(QPainter& painter) {
   }
 }
 
+/*
+GLSceneConfiguration
+*/
+void GLSceneConfiguration::setInterpolateMethod(InterpolateMethod method) {
+  this->interpolateMethod = method;
+
+  for (GLObject* obj : scene->getObjs()) {
+    GLMesh* mesh = dynamic_cast<GLMesh*>(obj);
+    if (mesh) {
+      std::map<std::string, GLMaterial*>& materialmap = mesh->getMaterials();
+      for (auto m : materialmap) {
+        GLMaterial* material = m.second;
+        InterpolateGLTexture* t =
+            dynamic_cast<InterpolateGLTexture*>(material->getAmbientTexture());
+        if (t) {
+          t->setInterpolateMethod(method);
+        }
+        t = dynamic_cast<InterpolateGLTexture*>(material->getDiffuseTexture());
+        if (t) {
+          t->setInterpolateMethod(method);
+        }
+      }
+    }
+  }
+}
+
+InterpolateMethod GLSceneConfiguration::getInterpolateMethod() { return this->interpolateMethod; }
 }  // namespace qtgl

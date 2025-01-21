@@ -59,11 +59,16 @@ class InterpolateGLTexture : public GLTexture {
     this->mat = img;
   };
 
+  void setInterpolateMethod(InterpolateMethod mtd) { this->interpolateMtd = mtd; }
+  InterpolateMethod getInterpolateMethod() { return this->interpolateMtd; }
+
   Color01 sample(TexCoord& coord) {
     switch (interpolateMtd) {
       case InterpolateMethod::LIINEAR:
         return sample_linear(coord);
       case InterpolateMethod::BILINEAR:
+        return sample_bilinear(coord);
+      default:
         return sample_bilinear(coord);
     };
   }

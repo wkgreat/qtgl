@@ -3,12 +3,14 @@
 #include <QPainter>
 #include "camera.hpp"
 #include "material.hpp"
+#include "mesh.hpp"
 #include "projection.hpp"
 #include "shader.hpp"
 
 namespace qtgl {
 
 class GLObject;
+class GLSceneConfiguration;
 
 class GLScene {
  private:
@@ -25,16 +27,12 @@ class GLScene {
   Eigen::Matrix4d transformMatrix;
   Eigen::Matrix4d invTransformMatrix;
 
- public:
-  GLScene(double viewHeight = 768.0, double viewWidth = 1024.0)
-      : viewHeight(viewHeight), viewWidth(viewWidth) {
-    this->projection.height = viewHeight;
-    this->projection.width = viewWidth;
-    this->shadermap[IlluminationModel::LAMBERTIAN] = new LambertianGLShader();
-    this->shadermap[IlluminationModel::LAMBERTIAN_BLINN_PHONG] = new LambertialBlinnPhongGLShader();
-  }
-  ~GLScene();
+  GLSceneConfiguration* configuration;
 
+ public:
+  GLScene(double viewHeight = 768.0, double viewWidth = 1024.0);
+  ~GLScene();
+  GLSceneConfiguration* getConfiguration() { return configuration; }
   GLCamera& getCamera() { return this->camera; }
   Fragments& getFragments() { return this->fragments; }
   GLProjection& getProjection() { return this->projection; }
@@ -115,4 +113,21 @@ class GLScene {
     return v1.dot(v2) < 0;
   }
 };
+
+class GLSceneConfiguration {
+ private:
+  GLScene* scene;
+
+  InterpolateMethod interpolateMethod = InterpolateMethod::BILINEAR;
+
+ public:
+  GLSceneConfiguration(GLScene* scene) : scene(scene) {
+    setInterpolateMethod(InterpolateMethod::BILINEAR);
+  }
+  ~GLSceneConfiguration() {}
+
+  void setInterpolateMethod(InterpolateMethod method);
+  InterpolateMethod getInterpolateMethod();
+};
+
 }  // namespace qtgl
