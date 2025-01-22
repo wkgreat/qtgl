@@ -119,6 +119,7 @@ class GLSceneConfiguration {
   GLScene* scene;
 
   InterpolateMethod interpolateMethod = InterpolateMethod::BILINEAR;
+  TexCoordType texCoordType = TexCoordType::PERSPECTIVE_CORRECT;
 
  public:
   GLSceneConfiguration(GLScene* scene) : scene(scene) {
@@ -128,6 +129,9 @@ class GLSceneConfiguration {
 
   void setInterpolateMethod(InterpolateMethod method);
   InterpolateMethod getInterpolateMethod();
+
+  void setTexCoordType(TexCoordType typ);
+  TexCoordType getTexCoordType();
 };
 
 }  // namespace qtgl

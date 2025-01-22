@@ -153,6 +153,50 @@ class GLPointLightHelper : public QWidget {
   ~GLPointLightHelper() = default;
 };
 
+class TextureHelper : public QWidget {
+ public:
+  GLScene* scene;
+  QLabel labelInterpolateMethod;
+  QComboBox boxInterpolateMethod;
+  QLabel labelTexcoordMethod;
+  QComboBox boxTexcoordMethod;
+  QGridLayout layout;
+
+  TextureHelper(QWidget* parent = nullptr) : QWidget(parent) {}
+  ~TextureHelper() = default;
+
+  void setScene(GLScene* scene) {
+    this->scene = scene;
+    labelInterpolateMethod.setText(QString("Texture Interpolation Method: "));
+    boxInterpolateMethod.addItem(QString("bilinear"));
+    boxInterpolateMethod.addItem(QString("linear"));
+    connect(&boxInterpolateMethod, &QComboBox::currentTextChanged, [&](QString text) {
+      if (text == QString("linear")) {
+        this->scene->getConfiguration()->setInterpolateMethod(InterpolateMethod::LIINEAR);
+      } else if (text == QString("bilinear")) {
+        this->scene->getConfiguration()->setInterpolateMethod(InterpolateMethod::BILINEAR);
+      }
+    });
+    layout.addWidget(&labelInterpolateMethod, 1, 0);
+    layout.addWidget(&boxInterpolateMethod, 1, 1);
+
+    labelTexcoordMethod.setText(QString("Texcoord Type: "));
+    boxTexcoordMethod.addItem(QString("perspective correct texcoord"));
+    boxTexcoordMethod.addItem(QString("basic texcoord"));
+    connect(&boxTexcoordMethod, &QComboBox::currentTextChanged, [&](QString text) {
+      if (text == QString("basic texcoord")) {
+        this->scene->getConfiguration()->setTexCoordType(TexCoordType::BASIC);
+      } else if (text == QString("perspective correct texcoord")) {
+        this->scene->getConfiguration()->setTexCoordType(TexCoordType::PERSPECTIVE_CORRECT);
+      }
+    });
+    layout.addWidget(&labelTexcoordMethod, 1, 2);
+    layout.addWidget(&boxTexcoordMethod, 1, 3);
+
+    this->setLayout(&layout);
+  }
+};
+
 class SceneHelper : public QWidget {
  public:
   GLScene* scene;
@@ -169,9 +213,6 @@ class SceneHelper : public QWidget {
   QSlider slider4;
   QSlider slider5;
   QSlider slider6;
-
-  QLabel labelInterpolateMethod;
-  QComboBox boxInterpolateMethod;
 
   QGridLayout layout;
   SceneHelper(QWidget* parent = nullptr) : QWidget(parent) {}
@@ -274,19 +315,6 @@ class SceneHelper : public QWidget {
     layout.addWidget(&slider5, 1, 3);
     layout.addWidget(&label6, 2, 2);
     layout.addWidget(&slider6, 2, 3);
-
-    labelInterpolateMethod.setText(QString("Texture Interpolation Method: "));
-    boxInterpolateMethod.addItem(QString("bilinear"));
-    boxInterpolateMethod.addItem(QString("linear"));
-    connect(&boxInterpolateMethod, &QComboBox::currentTextChanged, [&](QString text) {
-      if (text == QString("linear")) {
-        this->scene->getConfiguration()->setInterpolateMethod(InterpolateMethod::LIINEAR);
-      } else if (text == QString("bilinear")) {
-        this->scene->getConfiguration()->setInterpolateMethod(InterpolateMethod::BILINEAR);
-      }
-    });
-    layout.addWidget(&labelInterpolateMethod, 3, 0);
-    layout.addWidget(&boxInterpolateMethod, 3, 1);
 
     this->setLayout(&layout);
   }

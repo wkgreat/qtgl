@@ -50,9 +50,13 @@ int main(int argc, char* argv[]) {
   helper.setScene(&(widget.getScene()));
   layout->addWidget(&helper, 1, 0);
 
+  qtgl::TextureHelper texHelper;
+  texHelper.setScene(&(widget.getScene()));
+  layout->addWidget(&texHelper, 2, 0);
+
   qtgl::GLPointLightHelper lgthelper;
   lgthelper.setLight(lgt);
-  layout->addWidget(&lgthelper, 2, 0);
+  layout->addWidget(&lgthelper, 3, 0);
 
   window->setLayout(layout);
   window->show();

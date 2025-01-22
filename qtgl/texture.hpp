@@ -1,4 +1,6 @@
 #pragma once
+
+#include <Eigen/Dense>
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -7,20 +9,30 @@
 
 namespace qtgl {
 
+enum class TexCoordType { BASIC, PERSPECTIVE_CORRECT };
+
 class GLTexture {
  public:
+  static TexCoordType texCoordType;
   GLTexture() = default;
   virtual ~GLTexture() = default;
   virtual Color01 sample(TexCoord& coord) = 0;
 
   static TexCoord interpolateTexCoord(Triangle2& t, double alpha, double beta, double gamma) {
-    return prespectiveCorrectInterpolate(t, alpha, beta, gamma);
+    switch (texCoordType) {
+      case TexCoordType::BASIC:
+        return basicInterpolate(t, alpha, beta, gamma);
+      case TexCoordType::PERSPECTIVE_CORRECT:
+        return prespectiveCorrectInterpolate(t, alpha, beta, gamma);
+      default:
+        return prespectiveCorrectInterpolate(t, alpha, beta, gamma);
+    }
   }
 
   /*
   纹理坐标插值 - 基础版
   */
-  static TexCoord basicInterpolcate(Triangle2& t, double alpha, double beta, double gamma) {
+  static TexCoord basicInterpolate(Triangle2& t, double alpha, double beta, double gamma) {
     return alpha * t.getTexCoord0() + beta * t.getTexCoord1() + gamma * t.getTexCoord2();
   }
 

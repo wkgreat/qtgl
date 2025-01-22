@@ -92,4 +92,10 @@ void GLSceneConfiguration::setInterpolateMethod(InterpolateMethod method) {
 }
 
 InterpolateMethod GLSceneConfiguration::getInterpolateMethod() { return this->interpolateMethod; }
+
+void GLSceneConfiguration::setTexCoordType(TexCoordType typ) {
+  texCoordType = typ;
+  GLTexture::texCoordType = typ;
+}
+TexCoordType GLSceneConfiguration::getTexCoordType() { return texCoordType; }
 }  // namespace qtgl
