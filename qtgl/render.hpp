@@ -101,44 +101,44 @@ class GLPointLightHelper : public QWidget {
   GLPointLightHelper(QWidget* parent = nullptr) : QWidget(parent) {}
   void setLight(PointGLLight* lgt) {
     this->lgt = lgt;
-    label1.setText(QString("Light PosX: ") + QString::number(this->lgt->position[0]));
-    label2.setText(QString("Light PosY: ") + QString::number(this->lgt->position[1]));
-    label3.setText(QString("Light PosZ: ") + QString::number(this->lgt->position[2]));
+    label1.setText(QString("Light PosX: ") + QString::number(this->lgt->getPosition()[0]));
+    label2.setText(QString("Light PosY: ") + QString::number(this->lgt->getPosition()[1]));
+    label3.setText(QString("Light PosZ: ") + QString::number(this->lgt->getPosition()[2]));
 
     slider1.setOrientation(Qt::Horizontal);
     slider1.setMinimum(-600);
     slider1.setMaximum(600);
     slider1.setSingleStep(1);
-    slider1.setValue(this->lgt->position[0]);
+    slider1.setValue(this->lgt->getPosition()[0]);
     slider1.setTracking(true);
 
     connect(&slider1, &QSlider::valueChanged, [&](int value) {
-      this->lgt->position[0] = value;
-      label1.setText(QString("Light PosX: ") + QString::number(this->lgt->position[0]));
+      this->lgt->setPosition(0, value);
+      label1.setText(QString("Light PosX: ") + QString::number(this->lgt->getPosition()[0]));
     });
 
     slider2.setOrientation(Qt::Horizontal);
     slider2.setMinimum(-600);
     slider2.setMaximum(600);
     slider2.setSingleStep(1);
-    slider2.setValue(this->lgt->position[1]);
+    slider2.setValue(this->lgt->getPosition()[1]);
     slider2.setTracking(true);
 
     connect(&slider2, &QSlider::valueChanged, [&](int value) {
-      this->lgt->position[1] = value;
-      label2.setText(QString("Light PosY: ") + QString::number(this->lgt->position[1]));
+      this->lgt->setPosition(1, value);
+      label2.setText(QString("Light PosY: ") + QString::number(this->lgt->getPosition()[1]));
     });
 
     slider3.setOrientation(Qt::Horizontal);
     slider3.setMinimum(-600);
     slider3.setMaximum(600);
     slider3.setSingleStep(1);
-    slider3.setValue(this->lgt->position[2]);
+    slider3.setValue(this->lgt->getPosition()[2]);
     slider3.setTracking(true);
 
     connect(&slider3, &QSlider::valueChanged, [&](int value) {
-      this->lgt->position[2] = value;
-      label3.setText(QString("Light PosZ: ") + QString::number(this->lgt->position[2]));
+      this->lgt->setPosition(2, value);
+      label3.setText(QString("Light PosZ: ") + QString::number(this->lgt->getPosition()[2]));
     });
 
     layout.addWidget(&label1, 0, 0);

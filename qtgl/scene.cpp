@@ -22,32 +22,124 @@ GLScene::~GLScene() {
   for (auto s : shadermap) {
     delete s.second;
   }
+  for (auto s : shadows) {
+    delete s;
+  }
   delete configuration;
 }
 
+GLSceneConfiguration* GLScene::getConfiguration() { return configuration; }
+GLCamera& GLScene::getCamera() { return this->camera; }
+Fragments& GLScene::getFragments() { return this->fragments; }
+GLProjection& GLScene::getProjection() { return this->projection; }
+void GLScene::setViewHeight(double h) {
+  this->viewHeight = h;
+  this->projection.height = h;
+}
+void GLScene::setViewWidth(double w) {
+  this->viewWidth = w;
+  this->projection.width = w;
+}
+void GLScene::setViewSize(double w, double h) {
+  this->setViewWidth(w);
+  this->setViewHeight(h);
+}
+double GLScene::getViewHeight() { return this->viewHeight; }
+double GLScene::getViewWidth() { return this->viewWidth; }
+
+GLShader* GLScene::getShader(IlluminationModel model) { return this->shadermap[model]; }
+
+void GLScene::setAmbient(Color01 ambient) { this->ambient = ambient; }
+Color01 GLScene::getAmbient() const { return this->ambient; }
+
+void GLScene::addObj(GLObject* obj) {
+  objs.push_back(obj);
+  for (auto s : shadows) {
+    s->refreshDepthMap();
+  }
+}
+void GLScene::addLight(GLLight* lgt) {
+  lights.push_back(lgt);
+  shadows.push_back(new GLShadowMapping(this, lgt));
+  shadows.back()->refreshDepthMap();
+}
+std::vector<GLLight*>& GLScene::getLights() { return this->lights; }  // 光源-阴影同步
+std::vector<GLObject*>& GLScene::getObjs() { return this->objs; }     // 对象-阴影同步
+std::vector<GLShadowMapping*>& GLScene::getShadows() { return this->shadows; }
+
+Eigen::Matrix4d GLScene::viewportMatrix() {
+  double hw = this->viewWidth / 2;
+  double hh = this->viewHeight / 2;
+  Eigen::Matrix4d viewMtx;
+  viewMtx << hw, 0, 0, 0,  //
+      0, hh, 0, 0,         //
+      0, 0, 1, 0,          //
+      hw, hh, 0, 1;        //
+  return viewMtx;
+}
+
+void GLScene::calculateTransformMatrix() {
+  // 视图变换矩阵 * 投影变换矩阵 * 视口变换矩阵
+  transformMatrix = camera.viewMatrix() * projection.projMatrix() * viewportMatrix();
+  // 逆变换矩阵 用于将屏幕坐标转换为世界坐标
+  invTransformMatrix = transformMatrix.inverse();
+}
+
+// screen coordinator back to world coordinator
+Vertice GLScene::screenVerticeBackToWorldVertice(double x, double y, double z, double w) {
+  return screenVerticeBackToWorldVertice({x, y, z, w});
+}
+
+Vertice GLScene::screenVerticeBackToWorldVertice(Vertice v) {
+  v = v.transpose() * invTransformMatrix;
+  v /= v[3];
+  return v;
+}
+
+Vertice GLScene::screenVerticeBackToCameraVertice(Vertice v) {
+  v = v.transpose() * invTransformMatrix;
+  v /= v[3];
+  v = v.transpose() * this->getCamera().viewMatrix();
+  return v;
+}
+
+Fragments GLScene::initFragmentsBuffer() {
+  Fragments fs(this->viewHeight, std::vector<Fragment>(this->viewWidth, Fragment::init()));
+  return fs;
+}
+
+bool GLScene::isTriangleBack(Vertice& rp0, Vertice& rp1, Vertice& rp2, Normal& n0, Normal& n1,
+                             Normal& n2) {
+  Eigen::Vector3d p = ((rp0 + rp1 + rp2) / 3).head(3);
+  Eigen::Vector3d n = (n0 + n1 + n2).head(3).normalized();
+  Eigen::Vector3d c = this->getCamera().getPositionVertice().head(3);
+  Eigen::Vector3d v1 = n;
+  Eigen::Vector3d v2 = (c - p).head(3).normalized();
+  return v1.dot(v2) < 0;
+}
+
 void GLScene::meshTransformToScreen(GLObject* obj) {
-  // // 渲染 TODO 渲染移动至光栅化期间
-  // Vertice cameraPos{camera.getPosX(), camera.getPosY(), camera.getPosZ(), 0};
-  // obj->shadeVertices(shader, lights, cameraPos);
+  assert(!obj->editing);
 
   // 计算变换矩阵(视图变换+投影变换+视口变换)及逆矩阵
   calculateTransformMatrix();
 
-  // 准备变换
-  obj->prepareTransform();
-  // 模型变换
-  obj->transformWithModelMatrix();
   // 视图变换 + 投影变换 + 视口变换
-  obj->transformVerticesWithMatrix(this->transformMatrix);
+  obj->transformVerticesToScreen(this->transformMatrix);
 }
 
-void GLScene::draw(QPainter& painter) {
+void GLScene::rasterize() {
   fragments = initFragmentsBuffer();  // TODO clear rather than init new
 
   for (GLObject* obj : objs) {
     meshTransformToScreen(obj);
     obj->rasterize(*this);
   }
+}
+
+void GLScene::draw(QPainter& painter) {
+  rasterize();
+
   for (int h = 0; h < this->viewHeight; ++h) {
     for (int w = 0; w < this->viewWidth; ++w) {
       Fragment fragment = fragments[h][w];
