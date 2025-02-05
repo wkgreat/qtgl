@@ -10,6 +10,7 @@ GLScene::GLScene(double viewHeight, double viewWidth)
   this->shadermap[IlluminationModel::LAMBERTIAN] = new LambertianGLShader();
   this->shadermap[IlluminationModel::LAMBERTIAN_BLINN_PHONG] = new LambertialBlinnPhongGLShader();
   this->configuration = new GLSceneConfiguration(this);
+  this->eventBus = new GLEventBus();
 }
 
 GLScene::~GLScene() {
@@ -26,6 +27,7 @@ GLScene::~GLScene() {
     delete s;
   }
   delete configuration;
+  delete this->eventBus;
 }
 
 GLSceneConfiguration* GLScene::getConfiguration() { return configuration; }
@@ -59,6 +61,7 @@ void GLScene::addObj(GLObject* obj) {
   }
 }
 void GLScene::addLight(GLLight* lgt) {
+  lgt->setEventBus(eventBus);
   lights.push_back(lgt);
   shadows.push_back(new GLShadowMapping(this, lgt));
   shadows.back()->refreshDepthMap();

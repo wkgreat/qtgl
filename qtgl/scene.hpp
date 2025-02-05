@@ -32,7 +32,7 @@ class GLScene {
   Eigen::Matrix4d transformMatrix;
   Eigen::Matrix4d invTransformMatrix;
 
-  GLEventBus eventBus;
+  GLEventBus* eventBus;
   GLSceneConfiguration* configuration;
 
  public:
@@ -58,6 +58,8 @@ class GLScene {
   std::vector<GLLight*>& getLights();  // 光源-阴影同步
   std::vector<GLObject*>& getObjs();   // 对象-阴影同步
   std::vector<GLShadowMapping*>& getShadows();
+
+  GLEventBus* getEventBus() { return this->eventBus; }
 
   Eigen::Matrix4d viewportMatrix();
 

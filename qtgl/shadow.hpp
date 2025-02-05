@@ -1,14 +1,11 @@
 #pragma once
 
-#include "define.hpp"
-
-#include "shader.hpp"
-
 #include <limits>
-
-#include "projection.hpp"
-
 #include "camera.hpp"
+#include "define.hpp"
+#include "event.hpp"
+#include "projection.hpp"
+#include "shader.hpp"
 
 namespace qtgl {
 class GLScene;
@@ -29,6 +26,8 @@ class GLShadowMapping {
   Eigen::Matrix4d transformMatrix;
   Eigen::Matrix4d invTransformMatrix;
 
+  GLEventBus* eventBus;
+
   GLShadowMapping(GLScene* scene, GLLight* lgt);
   ~GLShadowMapping();
   void refreshDepthMap();
@@ -39,6 +38,9 @@ class GLShadowMapping {
   void rasterizeTriangle(Vertice p0, Vertice p1, Vertice p2);
 
   bool isWorldPosInShadow(Vertice p);
+
+  void setEventBus(GLEventBus* eventBus) { this->eventBus = eventBus; }
+  GLEventBus* getEventBus() { return this->eventBus; }
 };
 
 }  // namespace qtgl

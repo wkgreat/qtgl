@@ -14,10 +14,15 @@ GLShadowMapping::GLShadowMapping(GLScene* scene, GLLight* lgt) {
     projection.height = mapHeight;
     projection.width = mapWidth;
     projection.mode = GLProjectionMode::PRESPECTIVE;
-    camera.lookAt(this->lgt->getPosition()[0], this->lgt->getPosition()[1],
-                  this->lgt->getPosition()[2], 0, 0, 0);
     refreshDepthMap();
   }
+  this->setEventBus(scene->getEventBus());
+  this->eventBus->on(GLEvent::CHANGE_LIGHT, [this, lgt](void* p) {
+    GLLight* target = reinterpret_cast<GLLight*>(p);
+    if (target == lgt) {
+      this->refreshDepthMap();
+    }
+  });
 }
 GLShadowMapping::~GLShadowMapping() {
   if (depthMap) {
@@ -30,8 +35,12 @@ void GLShadowMapping::refreshDepthMap() {
     delete depthMap;
     this->depthMap = nullptr;
   }
+
   this->depthMap =
       new std::vector<std::vector<double>>(mapHeight, std::vector<double>(mapWidth, DEPTH_INF));
+
+  camera.lookAt(this->lgt->getPosition()[0], this->lgt->getPosition()[1],
+                this->lgt->getPosition()[2], 0, 0, 0);
 
   // 视图变换矩阵 * 投影变换矩阵 * 视口变换矩阵
   transformMatrix = camera.viewMatrix() * projection.projMatrix() * viewportMatrix();
