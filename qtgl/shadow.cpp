@@ -40,7 +40,8 @@ void GLShadowMapping::refreshDepthMap() {
       new std::vector<std::vector<double>>(mapHeight, std::vector<double>(mapWidth, DEPTH_INF));
 
   camera.lookAt(this->lgt->getPosition()[0], this->lgt->getPosition()[1],
-                this->lgt->getPosition()[2], 0, 0, 0);
+                this->lgt->getPosition()[2], this->scene->getCamera().getToX(),
+                this->scene->getCamera().getToY(), this->scene->getCamera().getToZ());
 
   // 视图变换矩阵 * 投影变换矩阵 * 视口变换矩阵
   transformMatrix = camera.viewMatrix() * projection.projMatrix() * viewportMatrix();

@@ -5,7 +5,7 @@
 #include "mathutils.hpp"
 
 namespace qtgl {
-/*
+/* z-up
 Heading(Yaw)  绕Z轴逆时针旋转
 Pitch         绕X轴逆时针旋转
 Roll          绕Y轴逆时针旋转
@@ -49,6 +49,9 @@ class GLCamera {
   double getPitch() const { return this->pitch; }
   double getRool() const { return this->roll; }
   Vertice getPositionVertice() { return {pos_x, pos_y, pos_z, 1}; }
+  double getToX() const { return this->to_x; }
+  double getToY() const { return this->to_y; }
+  double getToZ() const { return this->to_z; }
 
   void lookAt(double fx, double fy, double fz, double tx, double ty, double tz) {
     // https://stackoverflow.com/a/33790309

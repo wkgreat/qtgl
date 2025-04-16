@@ -54,6 +54,10 @@ struct GLShader {
   virtual Color01 shade(std::vector<GLLight*>& lights, std::vector<int>& lightInShadow,
                         Color01 ambient, GLMaterial* material, Vertice& position,
                         Eigen::Vector3d& uvNormal, Eigen::Vector3d& uvView, TexCoord* coord) = 0;
+  virtual Color01 shade2(Triangle2& triangle, Vertice& worldPos, GLCamera& camera,
+                         Triangle2::BarycentricCoordnates& centricCoord,
+                         std::vector<GLLight*>& lights, std::vector<int>& isLightShadow,
+                         GLMaterial& material, Color01 ambient) = 0;
 };
 
 struct LambertianGLShader : public GLShader {
@@ -67,13 +71,31 @@ struct LambertianGLShader : public GLShader {
     for (int i = 0; i < lights.size(); ++i) {
       if (!lightInShadow[i]) {
         uvLight = lights[i]->uvLight(position);
-        p = p + (std::max(0.0, uvLight.dot(uvNormal)))*lights[i]->getIntensity();
+        p = p + (std::max(0.0, uvLight.dot(uvNormal))) * lights[i]->getIntensity();
       }
     }
     r = r + p.cwiseProduct(material->getDiffuse(coord));
     return r;
   }
+
+  Color01 shade2(Triangle2& triangle, Vertice& worldPos, GLCamera& camera,
+                 Triangle2::BarycentricCoordnates& centricCoord, std::vector<GLLight*>& lights,
+                 std::vector<int>& isLightShadow, GLMaterial& material, Color01 ambient) {
+    Color01 color;
+    Normal uvNormal =
+        (centricCoord.alpha * triangle.getNormal0() + centricCoord.beta * triangle.getNormal1() +
+         centricCoord.gamma * triangle.getNormal2())
+            .normalized();
+    Normal uvView = (camera.getPositionVertice().head(3) - worldPos.head(3)).normalized();
+    TexCoord txtcoord = GLTexture::interpolateTexCoord(triangle, centricCoord.alpha,
+                                                       centricCoord.beta, centricCoord.gamma);
+
+    color = this->shade(lights, isLightShadow, ambient, &material, worldPos, uvNormal, uvView,
+                        &txtcoord);
+    return color;
+  }
 };
+
 struct LambertialBlinnPhongGLShader : public GLShader {
   Color01 shade(std::vector<GLLight*>& lights, std::vector<int>& lightInShadow, Color01 ambient,
                 GLMaterial* material, Vertice& position, Eigen::Vector3d& uvNormal,
@@ -88,7 +110,7 @@ struct LambertialBlinnPhongGLShader : public GLShader {
       if (!lightInShadow[i]) {
         uvLight = lights[i]->uvLight(position);
         uvHalf = (uvView + uvLight).normalized();
-        d = d + (std::max(0.0, uvLight.dot(uvNormal)))*lights[i]->getIntensity();
+        d = d + (std::max(0.0, uvLight.dot(uvNormal))) * lights[i]->getIntensity();
         s = s + std::pow(std::max(0.0, uvHalf.dot(uvNormal)), material->getSpecularHighlight()) *
                     lights[i]->getIntensity();
       }
@@ -97,6 +119,23 @@ struct LambertialBlinnPhongGLShader : public GLShader {
     r = r + s.cwiseProduct(material->getSpecular());
     r = Color01Utils::clamp(r);
     return r;
+  }
+
+  Color01 shade2(Triangle2& triangle, Vertice& worldPos, GLCamera& camera,
+                 Triangle2::BarycentricCoordnates& centricCoord, std::vector<GLLight*>& lights,
+                 std::vector<int>& isLightShadow, GLMaterial& material, Color01 ambient) {
+    Color01 color;
+    Normal uvNormal =
+        (centricCoord.alpha * triangle.getNormal0() + centricCoord.beta * triangle.getNormal1() +
+         centricCoord.gamma * triangle.getNormal2())
+            .normalized();
+    Normal uvView = (camera.getPositionVertice().head(3) - worldPos.head(3)).normalized();
+    TexCoord txtcoord = GLTexture::interpolateTexCoord(triangle, centricCoord.alpha,
+                                                       centricCoord.beta, centricCoord.gamma);
+
+    color = this->shade(lights, isLightShadow, ambient, &material, worldPos, uvNormal, uvView,
+                        &txtcoord);
+    return color;
   }
 };
 

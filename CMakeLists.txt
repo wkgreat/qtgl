@@ -9,6 +9,7 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 add_definitions(-w)
 

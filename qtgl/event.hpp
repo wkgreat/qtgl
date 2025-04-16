@@ -46,7 +46,15 @@ class GLEventBus {
     }
   }
   void un(GLEvent event, long id) {
-    // TODO
+    if (callbacks.count(event)) {
+      auto it = callbacks[event].begin();
+      for (; it < callbacks[event].end(); it++) {
+        if ((*it).id == id) {
+          break;
+        }
+      }
+      callbacks[event].erase(it);
+    }
   }
 };
 

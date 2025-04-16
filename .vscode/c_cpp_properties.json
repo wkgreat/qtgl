@@ -6,6 +6,7 @@
                 "${workspaceFolder}/**",
                 "E:/vcpkg/installed/x64-windows/include/Qt6/QtGui",
                 "E:/vcpkg/installed/x64-windows/include/qt5",
+                "E:/vcpkg/installed/x64-windows/include",
                 "E:/vcpkg/installed/x64-windows/include"
             ],
             "defines": [

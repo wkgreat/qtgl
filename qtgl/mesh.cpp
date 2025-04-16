@@ -110,11 +110,6 @@ void GLMeshGroup::rasterize(GLScene& scene) {
     Normal n1 = parent->getTransformedNormals().row(normIdx[1]).normalized();
     Normal n2 = parent->getTransformedNormals().row(normIdx[2]).normalized();
 
-    // 背面剔除
-    if (scene.isTriangleBack(rp0, rp1, rp2, n0, n1, n2)) {
-      continue;
-    }
-
     GLMaterial* material = parent->getMaterial(ref.mtlname);
 
     if (ref.indices[0] != -1 && ref.indices[1] != -1 && ref.indices[2] != -1) {
@@ -122,10 +117,12 @@ void GLMeshGroup::rasterize(GLScene& scene) {
       TexCoord t1 = parent->getTexCoords().row(ref.indices[1]);
       TexCoord t2 = parent->getTexCoords().row(ref.indices[2]);
       Triangle2 t(p0, p1, p2, n0, n1, n2, t0, t1, t2);
+      t.setWorldPos(rp0, rp1, rp2);
       std::vector<Color01> clrs = colors[i];
       rasterizeTriangle(scene, t, clrs, material);
     } else {
       Triangle2 t(p0, p1, p2, n0, n1, n2);
+      t.setWorldPos(rp0, rp1, rp2);
       std::vector<Color01> clrs = colors[i];
       rasterizeTriangle(scene, t, clrs, material);
     }
@@ -148,46 +145,53 @@ void GLMeshGroup::rasterizeTriangle(GLScene& scene, Triangle2& t, std::vector<Co
   IlluminationModel model = material->getIllumination();
   std::vector<int> isLightShadow(scene.getLights().size());
 
+  // clip TODO
+
+  // 背面剔除
+  if (scene.isTriangleBack(t.getWorldPos0(), t.getWorldPos1(), t.getWorldPos2(), t.getNormal0(),
+                           t.getNormal1(), t.getNormal2())) {
+    return;
+  }
+
   for (int x = xmin; x <= xmax; ++x) {
     if (x < 0 || x >= fragments[0].size()) continue;
     for (int y = ymin; y <= ymax; ++y) {
       if (y < 0 || y >= fragments.size()) continue;
-      // Shade Fragment
 
+      // Barycentric test
       coord = t.resovleBarycentricCoordnates({x, y});
-      if (coord.alpha >= 0 && coord.beta >= 0 && coord.gamma >= 0) {
-        depth = coord.alpha * t.hz0() + coord.beta * t.hz1() + coord.gamma * t.hz2();
-        if (depth < fragments[y][x].depth) {
-          // decide to shade
+      if (coord.alpha < 0 || coord.beta < 0 || coord.gamma < 0) {
+        continue;
+      }
 
-          if (model == IlluminationModel::CONSTANT) {
-            color = material->getDiffuse();
+      // depth test
+      depth = coord.alpha * t.hz0() + coord.beta * t.hz1() + coord.gamma * t.hz2();
+      if (depth >= fragments[y][x].depth) {
+        continue;
+      }
+
+      if (depth < fragments[y][x].depth) {
+        // shadow
+        Vertice screenPos(x, y, depth, 1);
+        Vertice worldPos = scene.screenVerticeBackToWorldVertice(screenPos);
+        for (int i = 0; i < scene.getLights().size(); ++i) {
+          if (scene.getShadows()[i]->isWorldPosInShadow(worldPos)) {
+            isLightShadow[i] = 1;
           } else {
-            GLShader* shader = scene.getShader(IlluminationModel::LAMBERTIAN_BLINN_PHONG);  // TODO
-            Vertice screenPos(x, y, depth, 1);
-            Vertice worldPos = scene.screenVerticeBackToWorldVertice(screenPos);
-            for (int i = 0; i < scene.getLights().size(); ++i) {
-              if (scene.getShadows()[i]->isWorldPosInShadow(worldPos)) {
-                isLightShadow[i] = 1;
-              } else {
-                isLightShadow[i] = 0;
-              }
-            }
-            Normal uvNormal = (coord.alpha * t.getNormal0() + coord.beta * t.getNormal1() +
-                               coord.gamma * t.getNormal2())
-                                  .normalized();
-            Normal uvView =
-                (scene.getCamera().getPositionVertice().head(3) - worldPos.head(3)).normalized();
-            TexCoord txtcoord =
-                GLTexture::interpolateTexCoord(t, coord.alpha, coord.beta, coord.gamma);
-
-            color = shader->shade(scene.getLights(), isLightShadow, scene.getAmbient(), material,
-                                  worldPos, uvNormal, uvView, &txtcoord);
+            isLightShadow[i] = 0;
           }
-
-          fragments[y][x].color = color;
-          fragments[y][x].depth = depth;
         }
+        if (model == IlluminationModel::CONSTANT) {
+          color = material->getDiffuse();
+        } else {
+          GLShader* shader = scene.getShader(IlluminationModel::LAMBERTIAN_BLINN_PHONG);  // TODO
+
+          color = shader->shade2(t, worldPos, scene.getCamera(), coord, scene.getLights(),
+                                 isLightShadow, *material, scene.getAmbient());
+        }
+
+        fragments[y][x].color = color;
+        fragments[y][x].depth = depth;
       }
     }
   }

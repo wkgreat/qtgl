@@ -7,9 +7,10 @@
 namespace qtgl {
 
 enum class IlluminationModel {
-  CONSTANT,               // constant color
-  LAMBERTIAN,             // lambertian shading
-  LAMBERTIAN_BLINN_PHONG  // lambertian shading and blinn-phong shading
+  CONSTANT,                // constant color
+  LAMBERTIAN,              // lambertian shading
+  LAMBERTIAN_BLINN_PHONG,  // lambertian shading and blinn-phong shading
+  PBR                      // PBR Model
 };
 
 class GLMaterial {

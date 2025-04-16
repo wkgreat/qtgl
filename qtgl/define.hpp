@@ -117,10 +117,11 @@ class Texture;
 
 class Triangle2 {
  private:
-  Vertice p0, p1, p2;
-  Vertice hp0, hp1, hp2;
-  Normal n0, n1, n2;
-  TexCoord t0, t1, t2;
+  Vertice wp0, wp1, wp2;  // world position
+  Vertice p0, p1, p2;     // screen position
+  Vertice hp0, hp1, hp2;  // screen position with w = 1
+  Normal n0, n1, n2;      // normal
+  TexCoord t0, t1, t2;    // texcoord
   bool hastexture = false;
 
   // for resolving barycentric coordinates
@@ -186,6 +187,16 @@ class Triangle2 {
   TexCoord& getTexCoord0() { return t0; }
   TexCoord& getTexCoord1() { return t1; }
   TexCoord& getTexCoord2() { return t2; }
+
+  void setWorldPos(Vertice& wp0, Vertice& wp1, Vertice& wp2) {
+    this->wp0 = wp0;
+    this->wp1 = wp1;
+    this->wp2 = wp2;
+  }
+
+  Vertice& getWorldPos0() { return this->wp0; }
+  Vertice& getWorldPos1() { return this->wp1; }
+  Vertice& getWorldPos2() { return this->wp2; }
 
   double w0() const { return p0[3]; }
   double w1() const { return p1[3]; }
