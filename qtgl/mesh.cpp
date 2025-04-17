@@ -112,89 +112,118 @@ void GLMeshGroup::rasterize(GLScene& scene) {
 
     GLMaterial* material = parent->getMaterial(ref.mtlname);
 
+    Triangle3 t(p0, p1, p2, n0, n1, n2);
+
     if (ref.indices[0] != -1 && ref.indices[1] != -1 && ref.indices[2] != -1) {
       TexCoord t0 = parent->getTexCoords().row(ref.indices[0]);
       TexCoord t1 = parent->getTexCoords().row(ref.indices[1]);
       TexCoord t2 = parent->getTexCoords().row(ref.indices[2]);
-      Triangle2 t(p0, p1, p2, n0, n1, n2, t0, t1, t2);
-      t.setWorldPos(rp0, rp1, rp2);
-      std::vector<Color01> clrs = colors[i];
-      rasterizeTriangle(scene, t, clrs, material);
-    } else {
-      Triangle2 t(p0, p1, p2, n0, n1, n2);
-      t.setWorldPos(rp0, rp1, rp2);
-      std::vector<Color01> clrs = colors[i];
-      rasterizeTriangle(scene, t, clrs, material);
+      t.addTexCoords(t0, t1, t2);
     }
+    t.setWorldPos(rp0, rp1, rp2);
+    rasterizeTriangle(scene, t, material);
   }
 }
 
-void GLMeshGroup::rasterizeTriangle(GLScene& scene, Triangle2& t, std::vector<Color01>& clrs,
-                                    GLMaterial* material) {
-  // mbr
-  int xmin = static_cast<int>(std::min(std::min(t.hx0(), t.hx1()), t.hx2()));
-  int xmax = static_cast<int>(std::max(std::max(t.hx0(), t.hx1()), t.hx2()));
-  int ymin = static_cast<int>(std::min(std::min(t.hy0(), t.hy1()), t.hy2()));
-  int ymax = static_cast<int>(std::max(std::max(t.hy0(), t.hy1()), t.hy2()));
+void GLMeshGroup::rasterizeTriangle(GLScene& scene, Triangle3& t, GLMaterial* material) {
+  GLTriangleShader shader;
+  shader.shade(t, material, scene.getCamera(), scene.getLights(), scene.getShadows(),
+               scene.getAmbient(), scene.getFragments(), scene.getInvTranformMatrix());
+}
 
-  double depth;
-  Color01 color;
-  Triangle2::BarycentricCoordnates coord;
-  Fragments& fragments = scene.getFragments();
-  GLTexture* texture = material->getDiffuseTexture();
-  IlluminationModel model = material->getIllumination();
-  std::vector<int> isLightShadow(scene.getLights().size());
+std::vector<GLPrimitive> GLMeshGroup::getPrimitives() {
+  int n = indices.rows();
+  Indices3 idxes;
+  Vertices worldPos;
+  Normals normals;
+  GLMaterial* pm = nullptr;
+  GLMaterial* cm = nullptr;
+  TexCoords texcoords;
+  bool hasTexcoords = false;
+  std::vector<GLPrimitive> ps;
+  int in = 0;
+  int cn = 0;
 
-  // clip TODO
+  idxes.conservativeResize(n, Eigen::NoChange);
+  worldPos.conservativeResize(n * 3, Eigen::NoChange);
+  normals.conservativeResize(n * 3, Eigen::NoChange);
+  texcoords.conservativeResize(n * 3, Eigen::NoChange);
 
-  // 背面剔除
-  if (scene.isTriangleBack(t.getWorldPos0(), t.getWorldPos1(), t.getWorldPos2(), t.getNormal0(),
-                           t.getNormal1(), t.getNormal2())) {
-    return;
-  }
+  for (int i = 0; i < n; ++i) {
+    TexRef ref = texrefs[i];
+    Index3 idx = indices.row(i);
+    NormIndex normIdx = normIndices.row(i);
+    cm = parent->getMaterial(ref.mtlname);
 
-  for (int x = xmin; x <= xmax; ++x) {
-    if (x < 0 || x >= fragments[0].size()) continue;
-    for (int y = ymin; y <= ymax; ++y) {
-      if (y < 0 || y >= fragments.size()) continue;
-
-      // Barycentric test
-      coord = t.resovleBarycentricCoordnates({x, y});
-      if (coord.alpha < 0 || coord.beta < 0 || coord.gamma < 0) {
-        continue;
-      }
-
-      // depth test
-      depth = coord.alpha * t.hz0() + coord.beta * t.hz1() + coord.gamma * t.hz2();
-      if (depth >= fragments[y][x].depth) {
-        continue;
-      }
-
-      if (depth < fragments[y][x].depth) {
-        // shadow
-        Vertice screenPos(x, y, depth, 1);
-        Vertice worldPos = scene.screenVerticeBackToWorldVertice(screenPos);
-        for (int i = 0; i < scene.getLights().size(); ++i) {
-          if (scene.getShadows()[i]->isWorldPosInShadow(worldPos)) {
-            isLightShadow[i] = 1;
-          } else {
-            isLightShadow[i] = 0;
-          }
+    if (cm != pm) {
+      if (in != 0) {
+        idxes.conservativeResize(in, Eigen::NoChange);
+        worldPos.conservativeResize(cn, Eigen::NoChange);
+        normals.conservativeResize(cn, Eigen::NoChange);
+        GLPrimitive p(MeshType::TRIANGLES, idxes, worldPos, normals, pm);
+        if (hasTexcoords) {
+          texcoords.conservativeResize(cn, Eigen::NoChange);
+          p.addTexCoord(0, texcoords);
         }
-        if (model == IlluminationModel::CONSTANT) {
-          color = material->getDiffuse();
-        } else {
-          GLShader* shader = scene.getShader(IlluminationModel::LAMBERTIAN_BLINN_PHONG);  // TODO
-
-          color = shader->shade2(t, worldPos, scene.getCamera(), coord, scene.getLights(),
-                                 isLightShadow, *material, scene.getAmbient());
-        }
-
-        fragments[y][x].color = color;
-        fragments[y][x].depth = depth;
+        ps.push_back(p);
+        in = 0;
+        cn = 0;
+        idxes.conservativeResize(n, Eigen::NoChange);
+        worldPos.conservativeResize(3 * n, Eigen::NoChange);
+        texcoords.conservativeResize(3 * n, Eigen::NoChange);
+        normals.conservativeResize(3 * n, Eigen::NoChange);
       }
     }
+
+    Vertice rp0 = parent->getVertices().row(idx[0]);
+    Vertice rp1 = parent->getVertices().row(idx[1]);
+    Vertice rp2 = parent->getVertices().row(idx[2]);
+    Vertice p0 = parent->getScreenVertices().row(idx[0]);
+    Vertice p1 = parent->getScreenVertices().row(idx[1]);
+    Vertice p2 = parent->getScreenVertices().row(idx[2]);
+    Normal n0 = parent->getTransformedNormals().row(normIdx[0]).normalized();
+    Normal n1 = parent->getTransformedNormals().row(normIdx[1]).normalized();
+    Normal n2 = parent->getTransformedNormals().row(normIdx[2]).normalized();
+
+    idxes(in, 0) = cn;
+    idxes(in, 1) = cn + 1;
+    idxes(in, 2) = cn + 2;
+    worldPos.row(cn) = rp0;
+    worldPos.row(cn + 1) = rp1;
+    worldPos.row(cn + 2) = rp2;
+    normals.row(cn + 0) = n0;
+    normals.row(cn + 1) = n1;
+    normals.row(cn + 2) = n2;
+
+    if (ref.indices[0] != -1 && ref.indices[1] != -1 && ref.indices[2] != -1) {
+      hasTexcoords = true;
+      TexCoord t0 = parent->getTexCoords().row(ref.indices[0]);
+      TexCoord t1 = parent->getTexCoords().row(ref.indices[1]);
+      TexCoord t2 = parent->getTexCoords().row(ref.indices[2]);
+      texcoords.row(cn + 0) = t0;
+      texcoords.row(cn + 1) = t1;
+      texcoords.row(cn + 2) = t2;
+    }
+    pm = cm;
+    in += 1;
+    cn += 3;
   }
+
+  if (in != 0) {
+    idxes.conservativeResize(in, Eigen::NoChange);
+    worldPos.conservativeResize(cn, Eigen::NoChange);
+    normals.conservativeResize(cn, Eigen::NoChange);
+    GLPrimitive p(MeshType::TRIANGLES, idxes, worldPos, normals, cm);
+    if (hasTexcoords) {
+      texcoords.conservativeResize(n * 3, Eigen::NoChange);
+      p.addTexCoord(0, texcoords);
+    }
+    ps.push_back(p);
+    in = 0;
+    cn = 0;
+  }
+
+  return ps;
 }
 
 const Color01 GLMesh::defaultColor = {1, 1, 1, 1};
@@ -204,6 +233,15 @@ void GLMesh::rasterize(GLScene& scene) {
   for (auto g : groups) {
     (g.second)->rasterize(scene);
   }
+}
+
+std::vector<GLPrimitive> GLMesh::getPrimitives() {
+  std::vector<GLPrimitive> primitvies;
+  for (auto g : groups) {
+    std::vector<GLPrimitive> ps = (g.second)->getPrimitives();
+    primitvies.insert(primitvies.end(), ps.begin(), ps.end());
+  }
+  return primitvies;
 }
 
 GLMesh* GLMesh::fromObjModel(ObjModel* model) {

@@ -10,6 +10,7 @@
 #include "affineutils.hpp"
 #include "material.hpp"
 #include "objmodel.hpp"
+#include "primitive.hpp"
 #include "scene.hpp"
 #include "shader.hpp"
 #include "texture.hpp"
@@ -66,6 +67,7 @@ class GLObject {
     this->transformWithModelMatrix();
     editing = false;
   }
+  virtual std::vector<GLPrimitive> getPrimitives() = 0;
 };
 
 class GLMesh;
@@ -106,13 +108,14 @@ class GLMeshGroup : public GLObject {
   void transformWithModelMatrix();
 
   void rasterize(GLScene& scene);
-  void rasterizeTriangle(GLScene& scene, Triangle2& t, std::vector<Color01>& clrs,
-                         GLMaterial* material);
+  void rasterizeTriangle(GLScene& scene, Triangle3& t, GLMaterial* material);
 
   void drawSkeleton(QPainter& painter);
 
   void startEditing();
   void finishEditing();
+
+  std::vector<GLPrimitive> getPrimitives();
 };
 
 class GLMesh : public GLObject {
@@ -172,6 +175,8 @@ class GLMesh : public GLObject {
   void startEditing();
 
   void finishEditing();
+
+  std::vector<GLPrimitive> getPrimitives();
 };
 
 }  // namespace qtgl

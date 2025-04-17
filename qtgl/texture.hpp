@@ -18,33 +18,34 @@ class GLTexture {
   virtual ~GLTexture() = default;
   virtual Color01 sample(TexCoord& coord) = 0;
 
-  static TexCoord interpolateTexCoord(Triangle2& t, double alpha, double beta, double gamma) {
+  static TexCoord interpolateTexCoord(Triangle3& t, int k, double alpha, double beta,
+                                      double gamma) {
     switch (texCoordType) {
       case TexCoordType::BASIC:
-        return basicInterpolate(t, alpha, beta, gamma);
+        return basicInterpolate(t, k, alpha, beta, gamma);
       case TexCoordType::PERSPECTIVE_CORRECT:
-        return prespectiveCorrectInterpolate(t, alpha, beta, gamma);
+        return prespectiveCorrectInterpolate(t, k, alpha, beta, gamma);
       default:
-        return prespectiveCorrectInterpolate(t, alpha, beta, gamma);
+        return prespectiveCorrectInterpolate(t, k, alpha, beta, gamma);
     }
   }
 
   /*
   纹理坐标插值 - 基础版
   */
-  static TexCoord basicInterpolate(Triangle2& t, double alpha, double beta, double gamma) {
-    return alpha * t.getTexCoord0() + beta * t.getTexCoord1() + gamma * t.getTexCoord2();
+  static TexCoord basicInterpolate(Triangle3& t, int k, double alpha, double beta, double gamma) {
+    return alpha * t.getTexCoord0(k) + beta * t.getTexCoord1(k) + gamma * t.getTexCoord2(k);
   }
 
   /*
   纹理坐标插值 - 透视正确版
   REF: [Fundamental of Computer Graphics] P255 11.2.4 Perspective Correct Interpolation
   */
-  static TexCoord prespectiveCorrectInterpolate(Triangle2& t, double alpha, double beta,
+  static TexCoord prespectiveCorrectInterpolate(Triangle3& t, int k, double alpha, double beta,
                                                 double gamma) {
-    TexCoord& c0 = t.getTexCoord0();
-    TexCoord& c1 = t.getTexCoord1();
-    TexCoord& c2 = t.getTexCoord2();
+    TexCoord& c0 = t.getTexCoord0(k);
+    TexCoord& c1 = t.getTexCoord1(k);
+    TexCoord& c2 = t.getTexCoord2(k);
     double w0 = t.w0();
     double w1 = t.w1();
     double w2 = t.w2();

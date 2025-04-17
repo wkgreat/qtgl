@@ -91,7 +91,8 @@
         "xutility": "cpp",
         "any": "cpp",
         "codecvt": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "cwctype": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

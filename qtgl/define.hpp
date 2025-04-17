@@ -2,7 +2,9 @@
 
 #include <Eigen/Dense>
 #include <limits>
+#include <map>
 #include <random>
+#include <vector>
 #include "mathutils.hpp"
 
 namespace qtgl {
@@ -187,6 +189,107 @@ class Triangle2 {
   TexCoord& getTexCoord0() { return t0; }
   TexCoord& getTexCoord1() { return t1; }
   TexCoord& getTexCoord2() { return t2; }
+
+  void setWorldPos(Vertice& wp0, Vertice& wp1, Vertice& wp2) {
+    this->wp0 = wp0;
+    this->wp1 = wp1;
+    this->wp2 = wp2;
+  }
+
+  Vertice& getWorldPos0() { return this->wp0; }
+  Vertice& getWorldPos1() { return this->wp1; }
+  Vertice& getWorldPos2() { return this->wp2; }
+
+  double w0() const { return p0[3]; }
+  double w1() const { return p1[3]; }
+  double w2() const { return p2[3]; }
+
+  // 重心坐标
+  struct BarycentricCoordnates {
+    double alpha;
+    double beta;
+    double gamma;
+  };
+
+  // https://gamedev.stackexchange.com/a/23745
+  BarycentricCoordnates resovleBarycentricCoordnates(Vertice2 p) {
+    BarycentricCoordnates coord;
+    Eigen::Vector2d v2 = p - this->a;
+    double d20 = v2.dot(this->v0);
+    double d21 = v2.dot(this->v1);
+    coord.beta = (d11 * d20 - d01 * d21) / denom;
+    coord.gamma = (d00 * d21 - d01 * d20) / denom;
+    coord.alpha = 1.0 - coord.beta - coord.gamma;
+    return coord;
+  }
+};
+
+class Triangle3 {
+ private:
+  Vertice wp0, wp1, wp2;                             // world position
+  Vertice p0, p1, p2;                                // screen position
+  Vertice hp0, hp1, hp2;                             // screen position with w = 1
+  Normal n0, n1, n2;                                 // normal
+  std::map<int, std::vector<TexCoord>> texCoordMap;  // texCoords
+
+  // for resolving barycentric coordinates
+  Vertice2 a, b, c;
+  Eigen::Vector2d v0, v1;
+  double d00, d01, d11, denom;
+
+ public:
+  Triangle3(Vertice& p0, Vertice& p1, Vertice& p2, Normal& n0, Normal& n1, Normal& n2) {
+    this->p0 = p0;
+    this->p1 = p1;
+    this->p2 = p2;
+
+    this->n0 = n0;
+    this->n1 = n1;
+    this->n2 = n2;
+
+    this->hp0 = p0 / p0[3];
+    this->hp1 = p1 / p1[3];
+    this->hp2 = p2 / p2[3];
+
+    this->a = this->hp0.head(2);
+    this->b = this->hp1.head(2);
+    this->c = this->hp2.head(2);
+
+    // paramenters for barycentric coordinatres resolving
+    this->v0 = b - a;
+    this->v1 = c - a;
+    this->d00 = this->v0.dot(this->v0);
+    this->d01 = this->v0.dot(this->v1);
+    this->d11 = this->v1.dot(this->v1);
+    this->denom = this->d00 * this->d11 - this->d01 * this->d01;
+  }
+
+  void addTexCoords(int k, TexCoord& c0, TexCoord& c1, TexCoord& c2) {
+    texCoordMap[k] = {c0, c1, c2};
+  }
+  void addTexCoords(TexCoord& c0, TexCoord& c1, TexCoord& c2) { addTexCoords(0, c0, c1, c2); }
+  bool hasTexCoords(int k) { return texCoordMap.find(k) != texCoordMap.end(); }
+  std::vector<TexCoord>& getTexCoords(int k) { return texCoordMap[k]; };
+  std::vector<TexCoord>& getTexCoords() { return getTexCoords(0); };
+  TexCoord& getTexCoord0(int k) { return texCoordMap[k][0]; }
+  TexCoord& getTexCoord1(int k) { return texCoordMap[k][1]; }
+  TexCoord& getTexCoord2(int k) { return texCoordMap[k][2]; }
+
+  inline double hx0() const { return hp0[0]; }
+  inline double hy0() const { return hp0[1]; }
+  inline double hz0() const { return hp0[2]; }
+
+  inline double hx1() const { return hp1[0]; }
+  inline double hy1() const { return hp1[1]; }
+  inline double hz1() const { return hp1[2]; }
+
+  inline double hx2() const { return hp2[0]; }
+  inline double hy2() const { return hp2[1]; }
+  inline double hz2() const { return hp2[2]; }
+
+  Normal& getNormal0() { return n0; }
+  Normal& getNormal1() { return n1; }
+  Normal& getNormal2() { return n2; }
 
   void setWorldPos(Vertice& wp0, Vertice& wp1, Vertice& wp2) {
     this->wp0 = wp0;

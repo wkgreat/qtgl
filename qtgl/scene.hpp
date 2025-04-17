@@ -72,9 +72,12 @@ class GLScene {
 
   Vertice screenVerticeBackToCameraVertice(Vertice v);
 
+  Eigen::Matrix4d& getInvTranformMatrix();
+
   void meshTransformToScreen(GLObject* obj);
 
   Fragments initFragmentsBuffer();
+
   void rasterize();
 
   void draw(QPainter& painter);

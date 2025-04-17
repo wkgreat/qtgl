@@ -75,6 +75,7 @@ void GLShadowMapping::rasterize() {
         rasterizeMeshGroup(g);
       }
     }
+    // TODO other type
   }
 }
 

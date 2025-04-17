@@ -106,6 +106,8 @@ Vertice GLScene::screenVerticeBackToCameraVertice(Vertice v) {
   return v;
 }
 
+Eigen::Matrix4d& GLScene::getInvTranformMatrix() { return this->invTransformMatrix; }
+
 Fragments GLScene::initFragmentsBuffer() {
   Fragments fs(this->viewHeight, std::vector<Fragment>(this->viewWidth, Fragment::init()));
   return fs;
@@ -131,12 +133,31 @@ void GLScene::meshTransformToScreen(GLObject* obj) {
   obj->transformVerticesToScreen(this->transformMatrix);
 }
 
+// void GLScene::rasterize() {
+//   fragments = initFragmentsBuffer();  // TODO clear rather than init new
+
+//   for (GLObject* obj : objs) {
+//     meshTransformToScreen(obj);
+//     obj->rasterize(*this);
+//   }
+// }
+
 void GLScene::rasterize() {
+  GLTriangleShader shader;
   fragments = initFragmentsBuffer();  // TODO clear rather than init new
+  calculateTransformMatrix();
 
   for (GLObject* obj : objs) {
-    meshTransformToScreen(obj);
-    obj->rasterize(*this);
+    std::vector<GLPrimitive> primitives = obj->getPrimitives();
+    for (GLPrimitive& primitive : primitives) {
+      primitive.transformFromWorldToScreen(this->transformMatrix);
+      std::vector<Triangle3> triangles = primitive.getTriangles();
+      for (Triangle3& t : triangles) {
+        shader.shade(t, primitive.getMaterial(), this->getCamera(), this->getLights(),
+                     this->getShadows(), this->getAmbient(), this->getFragments(),
+                     primitive.getInvMatrix());
+      }
+    }
   }
 }
 
