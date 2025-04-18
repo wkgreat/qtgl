@@ -175,7 +175,9 @@ struct GLTriangleShader {
     return v;
   }
   static GLShader* getShader(IlluminationModel model) {
-    if (model == IlluminationModel::CONSTANT) {
+    if (model == IlluminationModel::RANDOM) {
+      return nullptr;
+    } else if (model == IlluminationModel::CONSTANT) {
       // TODO
       return nullptr;
     } else if (model == IlluminationModel::LAMBERTIAN) {
@@ -189,7 +191,7 @@ struct GLTriangleShader {
       return nullptr;
     }
   }
-  void shade(Triangle3& t, GLMaterial* m, GLCamera& camera, std::vector<GLLight*>& lights,
+  void shade(Triangle3& t, GLMaterialBase* m, GLCamera& camera, std::vector<GLLight*>& lights,
              std::vector<GLShadowMapping*>& shadows, Color01 ambient, Fragments& fragments,
              Eigen::Matrix4d& invTransformMatrix);
 };

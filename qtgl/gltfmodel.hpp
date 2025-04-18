@@ -1,11 +1,14 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include "model.hpp"
 
 using json = nlohmann::json;
 
@@ -91,11 +94,13 @@ class GLTFNode {
   }
   void setMesh(int mesh) { this->mesh = mesh; }
   void setChildren(std::vector<int>& childern) { this->children = childern; }
+  GLTFModel* getModel() { return this->model; }
   std::string getName() { return this->name; }
   union transform& getTransform() { return transform; }
   bool getHasTransform() const { return hasTransform; }
   bool getIsTransformSep() const { return isTransformSeperate; }
   std::vector<int>& getChildren() { return children; }
+  int getMesh() { return this->mesh; }
 
   void fromJson(json& data);
 };
@@ -112,6 +117,7 @@ class GLTFMesh {
   ~GLTFMesh();
   GLTFMesh(const GLTFMesh& other);
   GLTFMesh& operator=(const GLTFMesh& other);
+  GLTFModel* getModel() const { return this->model; }
   void setName(std::string& name) { this->name = name; }
   void addPrimitive(GLTFPrimitive* primitive) { this->primitives.push_back(primitive); }
   void setWeights(std::vector<double>& weights) { this->weights = weights; }
@@ -138,9 +144,10 @@ class GLTFPrimitive {
   void setIndices(int indices) { this->indices = indices; }
   void setAttributes(std::map<std::string, int>& attrs) { this->attributes = attrs; }
   int getMode() const { return this->mode; }
+  GLTFMesh* getMesh() const { return this->mesh; }
   int getMaterial() const { return this->material; }
   int getIndices() const { return this->indices; }
-  int getAttribute(std::string& k) { return this->attributes[k]; }
+  int getAttribute(std::string k) { return this->attributes[k]; }
 };
 
 class GLTFMaterial {
@@ -226,12 +233,31 @@ class GLTFImage {
   void fromJson(json& data);
 };
 
+enum class GLTFComponentType {
+  BYTE = 5120,            // 8
+  UNSIGNED_BYTE = 5121,   // 8
+  SHORT = 5122,           // 16
+  UNSIGNED_SHORT = 5123,  // 16
+  UNSIGNED_INT = 5125,    // 32
+  FLOAT = 5126            // 32
+};  // namespace qtgl
+
+struct GLTFElementType {
+  static const std::string SCALAR;
+  static const std::string VEC2;
+  static const std::string VEC3;
+  static const std::string VEC4;
+  static const std::string MAT2;
+  static const std::string MAT3;
+  static const std::string MAT4;
+};
+
 class GLTFAccessor {
  private:
   GLTFModel* model;
   int bufferView;
   int byteOffset;
-  int componentType;
+  GLTFComponentType componentType;
   bool normalized = false;
   int count;
   std::string type;
@@ -239,13 +265,22 @@ class GLTFAccessor {
   std::vector<double> min;
   // TODO sparse
   std::string name;
+  void* data = nullptr;
 
  public:
   GLTFAccessor(GLTFModel* model) : model(model) {}
+  ~GLTFAccessor() {
+    if (data) {
+      delete[] data;
+      data = nullptr;
+    }
+  }
 
   void setBufferView(int bufferView) { this->bufferView = bufferView; }
   void setByteOffset(int byteOffset) { this->byteOffset = byteOffset; }
-  void setComponentType(int componentType) { this->componentType = componentType; }
+  void setComponentType(int componentType) {
+    this->componentType = static_cast<GLTFComponentType>(componentType);
+  }
   void setNormalized(bool normalized) { this->normalized = normalized; }
   void setCount(int count) { this->count = count; }
   void setType(std::string& type) { this->type = type; }
@@ -255,7 +290,7 @@ class GLTFAccessor {
 
   int getBufferView() { return this->bufferView; }
   int getByteOffset() { return this->byteOffset; }
-  int getComponentType() { return this->componentType; }
+  GLTFComponentType getComponentType() { return this->componentType; }
   bool getNormalized() { return this->normalized; }
   int getCount() { return this->count; }
   std::string getType() { return this->type; }
@@ -264,6 +299,49 @@ class GLTFAccessor {
   std::string getName() { return this->name; }
 
   void fromJson(json& data);
+
+  void* loadData();
+
+  size_t getElementByteLength() {
+    return getComponentSize(this->getComponentType()) * getComponentNumOfElement(this->getType());
+  }
+
+  static size_t getComponentSize(GLTFComponentType type) {
+    switch (type) {
+      case GLTFComponentType::BYTE:
+      case GLTFComponentType::UNSIGNED_BYTE:
+        return 1;
+      case GLTFComponentType::SHORT:
+      case GLTFComponentType::UNSIGNED_SHORT:
+        return 2;
+      case GLTFComponentType::UNSIGNED_INT:
+      case GLTFComponentType::FLOAT:
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
+  static size_t getComponentNumOfElement(std::string type) {
+    if (type == GLTFElementType::SCALAR) {
+      return 1;
+    } else if (type == GLTFElementType::VEC2) {
+      return 2;
+    } else if (type == GLTFElementType::VEC3) {
+      return 3;
+    } else if (type == GLTFElementType::VEC4) {
+      return 4;
+    } else if (type == GLTFElementType::MAT2) {
+      return 4;
+    } else if (type == GLTFElementType::MAT3) {
+      return 9;
+    } else if (type == GLTFElementType::MAT4) {
+      return 16;
+    } else {
+      throw std::runtime_error("type error: " + type);
+      return 0;
+    }
+  }
 };
 
 class GLTFBufferView {
@@ -275,9 +353,16 @@ class GLTFBufferView {
   int byteStride;
   int target;
   std::string name;
+  void* data = nullptr;
 
  public:
   GLTFBufferView(GLTFModel* model) : model(model) {}
+  ~GLTFBufferView() {
+    if (data) {
+      delete[] data;
+      data = nullptr;
+    }
+  }
   void setBuffer(int buffer) { this->buffer = buffer; }
   void setByteOffset(int byteOffset) { this->byteOffset = byteOffset; }
   void setByteLength(int byteLength) { this->byteLength = byteLength; }
@@ -293,6 +378,8 @@ class GLTFBufferView {
   std::string getName() { return this->name; }
 
   void fromJson(json& data);
+
+  void* loadData();
 };
 
 class GLTFBuffer {
@@ -301,9 +388,16 @@ class GLTFBuffer {
   std::string uri;
   int byteLength;
   std::string name;
+  void* data = nullptr;
 
  public:
   GLTFBuffer(GLTFModel* model) : model(model) {}
+  ~GLTFBuffer() {
+    if (data) {
+      delete[] data;
+      data = nullptr;
+    }
+  }
 
   void setUri(std::string uri) { this->uri = uri; }
   void setByteLength(int byteLength) { this->byteLength = byteLength; }
@@ -314,11 +408,14 @@ class GLTFBuffer {
   std::string getName() { return this->name; }
 
   void fromJson(json& data);
+
+  void* loadData();
 };
 
-class GLTFModel {
+class GLTFModel : public GLModel {
  private:
-  std::string path;
+  std::filesystem::path path;
+  std::filesystem::path dir;
   GLTFAsset asset;
   int scene;
   std::vector<GLTFScene> scenes;
@@ -330,11 +427,26 @@ class GLTFModel {
   std::vector<GLTFBufferView> bufferViews;
   std::vector<GLTFBuffer> buffers;
 
+  // temp
+  std::vector<GLMaterialBase*> materialBuffer;
+
   void parseFromFile(std::string& path);
 
  public:
-  GLTFModel(std::string path) : path(path) { parseFromFile(path); }
-  ~GLTFModel() = default;
+  GLTFModel(std::string path) {
+    this->path = std::filesystem::path(path);
+    this->dir = this->path.parent_path();
+
+    parseFromFile(path);
+  }
+  ~GLTFModel() {
+    for (GLMaterialBase* p : materialBuffer) {
+      delete p;
+    }
+    materialBuffer.clear();
+  }
+  std::filesystem::path& getPath() { return this->path; }
+  std::filesystem::path& getDir() { return this->dir; }
   GLTFAsset& getAsset() { return asset; }
   int getScene() { return this->scene; }
   void addScene(GLTFScene& scene) { scenes.push_back(scene); }
@@ -352,7 +464,12 @@ class GLTFModel {
   void addBufferView(GLTFBufferView& bufferView) { this->bufferViews.push_back(bufferView); }
   std::vector<GLTFBufferView>& getBufferViews() { return this->bufferViews; }
   void addBuffer(GLTFBuffer& buffer) { this->buffers.push_back(buffer); }
-  std::vector<GLTFBuffer> getBuffers() { return this->buffers; }
+  std::vector<GLTFBuffer>& getBuffers() { return this->buffers; }
+
+  // temp
+  std::vector<GLMaterialBase*>& getMaterialBuffer() { return this->materialBuffer; }
+
+  std::vector<GLPrimitive> getPrimitives();
 };
 
-};  // namespace qtgl
+}  // namespace qtgl

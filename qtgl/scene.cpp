@@ -56,15 +56,29 @@ Color01 GLScene::getAmbient() const { return this->ambient; }
 
 void GLScene::addObj(GLObject* obj) {
   objs.push_back(obj);
-  for (auto s : shadows) {
-    s->refreshDepthMap();
+  if (this->enabledShadow) {
+    for (auto s : shadows) {
+      s->refreshDepthMap();
+    }
   }
 }
+
+void GLScene::addModel(GLModel* model) {
+  models.push_back(model);
+  if (this->enabledShadow) {
+    for (auto s : shadows) {
+      s->refreshDepthMap();
+    }
+  }
+}
+
 void GLScene::addLight(GLLight* lgt) {
   lgt->setEventBus(eventBus);
   lights.push_back(lgt);
-  shadows.push_back(new GLShadowMapping(this, lgt));
-  shadows.back()->refreshDepthMap();
+  if (enabledShadow) {
+    shadows.push_back(new GLShadowMapping(this, lgt));
+    shadows.back()->refreshDepthMap();
+  }
 }
 std::vector<GLLight*>& GLScene::getLights() { return this->lights; }  // 光源-阴影同步
 std::vector<GLObject*>& GLScene::getObjs() { return this->objs; }     // 对象-阴影同步
@@ -149,6 +163,19 @@ void GLScene::rasterize() {
 
   for (GLObject* obj : objs) {
     std::vector<GLPrimitive> primitives = obj->getPrimitives();
+    for (GLPrimitive& primitive : primitives) {
+      primitive.transformFromWorldToScreen(this->transformMatrix);
+      std::vector<Triangle3> triangles = primitive.getTriangles();
+      for (Triangle3& t : triangles) {
+        shader.shade(t, primitive.getMaterial(), this->getCamera(), this->getLights(),
+                     this->getShadows(), this->getAmbient(), this->getFragments(),
+                     primitive.getInvMatrix());
+      }
+    }
+  }
+
+  for (GLModel* model : models) {
+    std::vector<GLPrimitive> primitives = model->getPrimitives();
     for (GLPrimitive& primitive : primitives) {
       primitive.transformFromWorldToScreen(this->transformMatrix);
       std::vector<Triangle3> triangles = primitive.getTriangles();

@@ -51,6 +51,7 @@ void GLShadowMapping::refreshDepthMap() {
   for (GLObject* obj : this->scene->getObjs()) {
     obj->transformVerticesToScreen(transformMatrix);
   }
+  // TODO model refresh
 
   this->rasterize();
 }

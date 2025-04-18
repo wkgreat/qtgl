@@ -22,11 +22,13 @@ class GLScene {
   GLCamera camera;
   GLProjection projection;
   std::vector<GLObject*> objs;
+  std::vector<GLModel*> models;
   std::vector<GLLight*> lights;
   Fragments fragments;
   std::map<IlluminationModel, GLShader*> shadermap;
   Color01 ambient = {1, 1, 1, 1};
 
+  bool enabledShadow = false;
   std::vector<GLShadowMapping*> shadows;
 
   Eigen::Matrix4d transformMatrix;
@@ -54,9 +56,26 @@ class GLScene {
   Color01 getAmbient() const;
 
   void addObj(GLObject* obj);
+  void addModel(GLModel* model);
   void addLight(GLLight* lgt);
   std::vector<GLLight*>& getLights();  // 光源-阴影同步
   std::vector<GLObject*>& getObjs();   // 对象-阴影同步
+  void enableShadow() {
+    if (!enabledShadow) {
+      this->enabledShadow = true;
+      this->shadows.clear();
+      for (GLLight* lgt : lights) {
+        shadows.push_back(new GLShadowMapping(this, lgt));
+        shadows.back()->refreshDepthMap();
+      }
+    }
+  }
+  void disableShadow() {
+    if (enabledShadow) {
+      shadows.clear();
+      this->enabledShadow = false;
+    }
+  }
   std::vector<GLShadowMapping*>& getShadows();
 
   GLEventBus* getEventBus() { return this->eventBus; }

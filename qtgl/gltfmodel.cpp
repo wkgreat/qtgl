@@ -201,12 +201,20 @@ void GLTFImage::fromJson(json& data) {
   // TODO read image
 }
 
+const std::string GLTFElementType::SCALAR = "SCALAR";
+const std::string GLTFElementType::VEC2 = "VEC2";
+const std::string GLTFElementType::VEC3 = "VEC3";
+const std::string GLTFElementType::VEC4 = "VEC4";
+const std::string GLTFElementType::MAT2 = "MAT2";
+const std::string GLTFElementType::MAT3 = "MAT3";
+const std::string GLTFElementType::MAT4 = "MAT4";
+
 void GLTFAccessor::fromJson(json& data) {
-  int bufferView = data.contains("bufferView") ? data["bufferView"] : -1;
+  int bufferView = data.contains("bufferView") ? data["bufferView"] : 0;
   this->setBufferView(bufferView);
   int bufferOffset = data.contains("byteOffset") ? data["byteOffset"] : 0;
   this->setByteOffset(bufferOffset);
-  int componentType = data.contains("componentType");
+  int componentType = data["componentType"];
   this->setComponentType(componentType);
   bool normalized = data.contains("normalized") ? data["normalized"].get<bool>() : false;
   this->setNormalized(normalized);
@@ -225,6 +233,38 @@ void GLTFAccessor::fromJson(json& data) {
   this->setName(name);
 }
 
+void* GLTFAccessor::loadData() {
+  if (!this->data) {
+    GLTFBufferView& thebufferview = this->model->getBufferViews()[this->bufferView];
+    GLTFBuffer& thebuffer = this->model->getBuffers()[thebufferview.getBuffer()];
+    char* rawdata = reinterpret_cast<char*>(thebuffer.loadData());
+    if (!rawdata) {
+      throw std::runtime_error("获取数据失败");
+    }
+    int totoffset = this->getByteOffset() + thebufferview.getByteOffset();
+    int elemlen = this->getElementByteLength();
+    int stride = thebufferview.getByteStride();
+    if (stride == -1) {
+      stride = elemlen;
+    }
+    int count = this->getCount();
+    int totByteLength = elemlen * count;
+
+    spdlog::trace(
+        "GLTFAccessor totoffset: {}, elemlen: {}, stride: {}, count: {}, totByteLength: {}",
+        totoffset, elemlen, stride, count, totByteLength);
+
+    char* newdata = new char[totByteLength];
+
+    for (int i = 0, p = 0, q = 0; i < count; i += 1, p += stride, q += elemlen) {
+      memcpy(newdata + q, rawdata + p, elemlen);
+    }
+
+    this->data = newdata;
+  }
+  return this->data;
+};
+
 void GLTFBufferView::fromJson(json& data) {
   int buffer = data["buffer"];
   this->setBuffer(buffer);
@@ -239,6 +279,8 @@ void GLTFBufferView::fromJson(json& data) {
   this->setName(name);
 }
 
+void* GLTFBufferView::loadData() { return nullptr; }
+
 void GLTFBuffer::fromJson(json& data) {
   std::string uri = data.contains("uri") ? data["uri"] : "";
   this->setUri(uri);
@@ -246,6 +288,24 @@ void GLTFBuffer::fromJson(json& data) {
   this->setByteLength(byteLength);
   std::string name = data.contains("name") ? data["name"] : "";
   this->setName(name);
+}
+
+void* GLTFBuffer::loadData() {
+  if (!this->data) {
+    char* newdata = new char[this->byteLength];
+    // TODO 判断URI是文件还是data uri
+    std::filesystem::path filepath(this->uri);
+    std::filesystem::path fullpath = this->model->getDir() / filepath;
+    spdlog::trace("buffer fullpath: {}", fullpath.string());
+    std::ifstream file(fullpath, std::ios::binary);
+    if (!file.read(reinterpret_cast<char*>(newdata), this->byteLength)) {
+      throw std::runtime_error("读取文件失败: " + this->uri);
+      // TODO 尝试读取 data uri
+    }
+    file.close();
+    this->data = newdata;
+  }
+  return this->data;
 }
 
 void GLTFModel::parseFromFile(std::string& path) {
@@ -305,6 +365,134 @@ void GLTFModel::parseFromFile(std::string& path) {
     buffer.fromJson(bufferJson);
     this->addBuffer(buffer);
   }
+
+  // load data
+  for (GLTFBuffer& buffer : this->getBuffers()) {
+    buffer.loadData();
+  }
+  for (GLTFBufferView& bufferView : this->getBufferViews()) {
+    bufferView.loadData();
+  }
+  for (GLTFAccessor& accessor : this->getAccessors()) {
+    accessor.loadData();
+  }
+}
+
+static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::Matrix4d& mtx) {
+  int mode = p->getMode();
+
+  if (mode == 4) {
+    if (p->getIndices() != -1) {
+      GLTFAccessor& indicesAccessor = model->getAccessors()[p->getIndices()];
+      if (indicesAccessor.getCount() % 3 != 0) {
+        spdlog::error("绘制三角形，但是索引数量不是3的倍数");
+      }
+      uint8_t* idxdata = reinterpret_cast<uint8_t*>(indicesAccessor.loadData());
+      int ntriangles = indicesAccessor.getCount() / 3;
+      Indices3 indices;
+      indices.conservativeResize(ntriangles, Eigen::NoChange);
+      for (int i = 0; i < ntriangles; ++i) {
+        Index3 idx(idxdata[i * 3], idxdata[i * 3 + 1], idxdata[i * 3 + 2]);
+        indices.row(i) = idx;
+      }
+
+      // position (float vec3)
+      GLTFAccessor& posAccessor = model->getAccessors()[p->getAttribute("POSITION")];
+      int npos = posAccessor.getCount() / 3;
+      if (indicesAccessor.getCount() % 3 != 0) {
+        spdlog::error("坐标点维度不为3");
+      }
+      float* posdata = reinterpret_cast<float*>(posAccessor.loadData());
+      Vertices localpos;
+      localpos.conservativeResize(npos, Eigen::NoChange);
+      for (int i = 0; i < npos; ++i) {
+        Vertice pos(static_cast<double>(posdata[i * 3]), static_cast<double>(posdata[i * 3 + 1]),
+                    static_cast<double>(posdata[i * 3 + 2]), 1.0);
+        localpos.row(i) = pos;
+      }
+      Vertices worldPos = AffineUtils::affine(localpos, mtx);
+
+      // normal (float vec3)
+      GLTFAccessor& normAccessor = model->getAccessors()[p->getAttribute("NORMAL")];
+      float* normdata = reinterpret_cast<float*>(normAccessor.loadData());
+      int nnorm = normAccessor.getCount() / 3;
+      if (normAccessor.getCount() % 3 != 0) {
+        spdlog::error("法向量维度不为3");
+      }
+      Normals localnorm;
+      localnorm.conservativeResize(nnorm, Eigen::NoChange);
+      for (int i = 0; i < nnorm; ++i) {
+        Normal norm(static_cast<double>(normdata[i * 3]), static_cast<double>(normdata[i * 3 + 1]),
+                    static_cast<double>(normdata[i * 3 + 2]));
+        localnorm.row(i) = norm;
+      }
+      Normals worldNorm = AffineUtils::norm_affine(localnorm, mtx.block(0, 0, 3, 3));
+
+      // texcoords (float/ubyte normalized/ushort normalized)
+      // others
+
+      /*
+        GLPrimitive(MeshType type, Indices3& indices, Vertices& worldPos, Normals& normal,
+              GLMaterial* material)
+      */
+      MeshType meshType = static_cast<MeshType>(mode);
+      std::vector<GLMaterialBase*>& materialBuffer = model->getMaterialBuffer();
+      if (materialBuffer.empty()) {
+        materialBuffer.push_back(new GLMaterialRandom());
+      }
+      GLPrimitive prim(meshType, indices, worldPos, worldNorm, materialBuffer.back());
+      return prim;
+
+    } else {
+      // TODO when indices not defined
+      spdlog::warn("indices 未定义.");
+      throw std::runtime_error("indices 未定义.");
+    }
+  } else {
+    // TODO other mode.
+    spdlog::warn("暂时不支持其他mode.");
+    throw std::runtime_error("暂时不支持其他mode.");
+  }
+}
+
+static void getPrimitivesFromMesh(GLTFModel* model, GLTFMesh& mesh, Eigen::Matrix4d& mtx,
+                                  std::vector<GLPrimitive>& primitives) {
+  for (GLTFPrimitive* p : mesh.getPrimitives()) {
+    primitives.push_back(fromGLTFPrimitve(model, p, mtx));
+  }
+};
+
+static void getPrimitivesFromNode(GLTFModel* model, GLTFNode& node, Eigen::Matrix4d& mtx,
+                                  std::vector<GLPrimitive>& primitives) {
+  Eigen::Matrix4d localMtx;
+  if (node.getIsTransformSep()) {
+    // TODO 三数组组合成转换矩阵
+  } else {
+    Eigen::Matrix4d m(node.getTransform().matrix);
+    localMtx = m.transpose();  // GTLF列主序改成行主序
+  }
+  mtx = mtx * localMtx;  // 添加转换矩阵
+  int imesh = node.getMesh();
+  GLTFMesh& mesh = model->getMeshes()[imesh];
+  getPrimitivesFromMesh(model, mesh, mtx, primitives);
+  for (int icnode : node.getChildren()) {
+    GLTFNode& cnode = node.getModel()->getNodes()[icnode];
+    getPrimitivesFromNode(model, cnode, mtx, primitives);
+  }
+
+  mtx = mtx * localMtx.inverse();  // 撤回转换矩阵
+};
+
+std::vector<GLPrimitive> GLTFModel::getPrimitives() {
+  std::vector<GLPrimitive> primitives;
+  // root
+  GLTFScene& root = this->scenes[this->scene];
+  Eigen::Matrix4d mtx = Eigen::Matrix4d::Identity();
+  for (int inode : root.getNodes()) {
+    GLTFNode& node = this->nodes[inode];
+    getPrimitivesFromNode(this, node, mtx, primitives);
+  }
+  return primitives;
 }
 
 };  // namespace qtgl

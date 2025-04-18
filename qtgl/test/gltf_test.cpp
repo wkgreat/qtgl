@@ -25,8 +25,22 @@ static void scenes_test(qtgl::GLTFModel* model) {
   std::cout << ">>> scenes_test success" << std::endl;
 }
 
+static void primitive_test(qtgl::GLTFModel* model) {
+  std::cout << "=== primitive_test start" << std::endl;
+  std::vector<qtgl::GLPrimitive> primitives = model->getPrimitives();
+  assert(primitives.size() == 1);
+  qtgl::Vertices worldpos = primitives[0].getWorldPos();
+  int nrow = worldpos.rows();
+  for (int i = 0; i < nrow; ++i) {
+    std::cout << worldpos.row(i) << std::endl;
+  }
+  std::cout << ">>> primitive_test success" << std::endl;
+}
+
 int main() {
   std::cout << "gltf_test START." << std::endl;
+  spdlog::set_level(spdlog::level::trace);
+
   std::string path = "E:\\codes\\practice\\qtgl\\data\\DamagedHelmet\\DamagedHelmet.gltf";
 
   qtgl::GLTFModel model(path);
@@ -34,6 +48,7 @@ int main() {
   asset_test(&model);
   scene_test(&model);
   scenes_test(&model);
+  primitive_test(&model);
 
   std::cout << "gltf_test FINISHED." << std::endl;
 

@@ -1,5 +1,5 @@
 set(CMAKE_INCLUDE_CURRENT_DIR true)
 add_executable(scene_test ../objmodel.cpp ../mesh.cpp scene_test.cpp)
 add_executable(gltf_test ../gltfmodel.cpp gltf_test.cpp)
-target_link_libraries(scene_test Qt5::Core Qt5::Widgets Eigen3::Eigen ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
-target_link_libraries(gltf_test Qt5::Core Qt5::Widgets Eigen3::Eigen ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
+target_link_libraries(scene_test spdlog::spdlog_header_only Qt5::Core Qt5::Widgets Eigen3::Eigen ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
+target_link_libraries(gltf_test spdlog::spdlog_header_only Qt5::Core Qt5::Widgets Eigen3::Eigen ${OpenCV_LIBS} nlohmann_json::nlohmann_json)

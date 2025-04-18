@@ -49,6 +49,17 @@ struct Color01Utils {
     r[3] = MathUtils::limit(c[3], 0, 1);
     return r;
   }
+  static Color01 random(bool alpha) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> real_distrib(0.0, 1.0);
+    Color01 r;
+    r[0] = real_distrib(gen);
+    r[1] = real_distrib(gen);
+    r[2] = real_distrib(gen);
+    r[3] = alpha ? real_distrib(gen) : 1;
+    return r;
+  }
 };
 
 class Triangle {

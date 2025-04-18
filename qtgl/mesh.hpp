@@ -9,6 +9,7 @@
 #include <map>
 #include "affineutils.hpp"
 #include "material.hpp"
+#include "model.hpp"
 #include "objmodel.hpp"
 #include "primitive.hpp"
 #include "scene.hpp"
@@ -19,7 +20,7 @@ namespace qtgl {
 
 class GLScene;
 
-class GLObject {
+class GLObject : public GLModel {
  protected:
   Vertices vertices;
   Eigen::Matrix4d modelMatrix = Eigen::Matrix4d::Identity();
@@ -67,7 +68,6 @@ class GLObject {
     this->transformWithModelMatrix();
     editing = false;
   }
-  virtual std::vector<GLPrimitive> getPrimitives() = 0;
 };
 
 class GLMesh;

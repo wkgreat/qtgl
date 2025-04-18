@@ -8,7 +8,15 @@
 
 namespace qtgl {
 
-enum class MeshType { POINTS, LINES, TRIANGLES, TRIANGLE_FAN, TRIANGLE_STRIP };
+enum class MeshType {
+  POINTS,
+  LINES,
+  LINE_LOOP,
+  LINE_STRIP,
+  TRIANGLES,
+  TRIANGLE_STRIP,
+  TRIANGLE_FAN
+};
 
 class GLPrimitive {
  private:
@@ -18,13 +26,14 @@ class GLPrimitive {
   Normals normal;
   std::map<int, TexCoords> texcoords;
   Indices3 indices;
-  GLMaterial* material;
+  GLMaterialBase* material;
   Eigen::Matrix4d matrix;
   Eigen::Matrix4d invMatrix;
 
  public:
+  GLPrimitive() {}
   GLPrimitive(MeshType type, Indices3& indices, Vertices& worldPos, Normals& normal,
-              GLMaterial* material)
+              GLMaterialBase* material)
       : meshType(type), indices(indices), worldPos(worldPos), normal(normal), material(material) {}
 
   void addTexCoord(int k, TexCoords& cs) { texcoords[k] = cs; }
@@ -35,9 +44,10 @@ class GLPrimitive {
     screenPos = AffineUtils::affine(worldPos, matrix);
   }
 
-  GLMaterial* getMaterial() { return this->material; }
+  GLMaterialBase* getMaterial() { return this->material; }
   Eigen::Matrix4d& getMatrix() { return this->matrix; }
   Eigen::Matrix4d& getInvMatrix() { return this->invMatrix; }
+  Vertices& getWorldPos() { return this->worldPos; }
 
   // TODO iterator
   std::vector<Triangle3> getTriangles() {

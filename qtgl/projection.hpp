@@ -11,8 +11,10 @@ enum class GLProjectionMode {
 
 class GLProjection {
  public:
-  double height, width;
-  double near, far;
+  double height;
+  double width;
+  double near;
+  double far;
   GLProjectionMode mode;
   GLProjection()
       : height(768), width(1024), near(0.1f), far(100), mode(GLProjectionMode::PRESPECTIVE) {}

@@ -7,13 +7,38 @@
 namespace qtgl {
 
 enum class IlluminationModel {
+  RANDOM,                  // random color
   CONSTANT,                // constant color
   LAMBERTIAN,              // lambertian shading
   LAMBERTIAN_BLINN_PHONG,  // lambertian shading and blinn-phong shading
   PBR                      // PBR Model
 };
 
-class GLMaterial {
+class GLMaterialBase {
+ public:
+  IlluminationModel model;
+  void setModel(IlluminationModel model) { this->model = model; }
+  IlluminationModel getModel() { return model; }
+};
+
+class GLMaterialRandom : public GLMaterialBase {
+ public:
+  GLMaterialRandom() { this->model = IlluminationModel::RANDOM; }
+  Color01 getColor() { return Color01Utils::random(false); }
+};
+
+class GLMaterialConstant : public GLMaterialBase {
+ private:
+  Color01 color = {0, 0, 0, 0};
+
+ public:
+  GLMaterialConstant() { this->model = IlluminationModel::CONSTANT; }
+
+  void setColor(Color01 color) { this->color = color; }
+  Color01 getColor() { return this->color; }
+};
+
+class GLMaterial : public GLMaterialBase {
  private:
   Color01 ambient = {0, 0, 0, 0};                                // Ka
   Color01 diffuse = {0, 0, 0, 0};                                // Kd
@@ -29,8 +54,8 @@ class GLMaterial {
   double diffuseTextureAlpha = 0.5;
 
  public:
-  GLMaterial() = default;
-  ~GLMaterial() {  // TODO: 设置纹理公共缓冲区
+  GLMaterial() { this->model = IlluminationModel::LAMBERTIAN; };
+  ~GLMaterial() {
     if (ambientTexture) {
       delete ambientTexture;
     }
@@ -45,7 +70,11 @@ class GLMaterial {
   void setSpecularHighlight(double d) { specularHighlight = d; }
   void setOpticalDensity(double d) { opticalDensity = d; }
   void setDissolve(double d) { dissolve = d; }
-  void setIllumination(IlluminationModel model) { illumination = model; }
+  void setIllumination(IlluminationModel model) {
+    illumination = model;
+    this->model = model;
+    // TODO check the model must be LAMBERTIAN or LAMBERTIAN_BLINN_PHONG
+  }
   void setAmbientTexture(GLTexture* texture) { ambientTexture = texture; }
   void setDiffuseTexture(GLTexture* texture) { diffuseTexture = texture; }
   void setAmbientTextureAlpha(double a) { ambientTextureAlpha = a; }

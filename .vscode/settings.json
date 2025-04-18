@@ -92,7 +92,8 @@
         "any": "cpp",
         "codecvt": "cpp",
         "valarray": "cpp",
-        "cwctype": "cpp"
+        "cwctype": "cpp",
+        "coroutine": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
