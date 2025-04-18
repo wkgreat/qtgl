@@ -33,6 +33,10 @@ class GLMaterialConstant : public GLMaterialBase {
 
  public:
   GLMaterialConstant() { this->model = IlluminationModel::CONSTANT; }
+  GLMaterialConstant(Color01 color) {
+    this->model = IlluminationModel::CONSTANT;
+    this->color = color;
+  }
 
   void setColor(Color01 color) { this->color = color; }
   Color01 getColor() { return this->color; }

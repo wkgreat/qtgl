@@ -48,6 +48,7 @@ class GLPrimitive {
   Eigen::Matrix4d& getMatrix() { return this->matrix; }
   Eigen::Matrix4d& getInvMatrix() { return this->invMatrix; }
   Vertices& getWorldPos() { return this->worldPos; }
+  Indices3& getIndices() { return this->indices; }
 
   // TODO iterator
   std::vector<Triangle3> getTriangles() {

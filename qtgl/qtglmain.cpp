@@ -28,12 +28,33 @@ int main(int argc, char* argv[]) {
   // // widget.getScene().addObj(f16Mesh);
   // widget.getScene().addModel(f16Mesh);
 
+  // helmet gltf
   std::string helmetpath = "E:\\codes\\practice\\qtgl\\data\\DamagedHelmet\\DamagedHelmet.gltf";
   qtgl::GLTFModel* model = new qtgl::GLTFModel(helmetpath);
   widget.getScene().addModel(model);
 
+  // cube gltf
+  // std::string cubepath = "E:\\codes\\practice\\qtgl\\data\\Cube\\Cube.gltf";
+  // qtgl::GLTFModel* cubemodel = new qtgl::GLTFModel(cubepath);
+  // widget.getScene().addModel(cubemodel);
+
+  // std::vector<qtgl::GLPrimitive> primitives = cubemodel->getPrimitives();
+  // assert(primitives.size() == 1);
+  // qtgl::Vertices worldpos = primitives[0].getWorldPos();
+  // int nrow = worldpos.rows();
+  // std::cout << "world pos:" << std::endl;
+  // for (int i = 0; i < nrow; ++i) {
+  //   std::cout << worldpos.row(i) << std::endl;
+  // }
+  // std::cout << "indices: " << std::endl;
+  // qtgl::Indices3 indices = primitives[0].getIndices();
+  // nrow = indices.rows();
+  // for (int i = 0; i < nrow; ++i) {
+  //   std::cout << indices.row(i) << std::endl;
+  // }
+
   // camera an projection
-  widget.getScene().getCamera().lookAt(-1, 1, 1, 0, 0, 0);
+  widget.getScene().getCamera().lookAt(-20, 20, 20, 0, 0, 0);
   widget.getScene().getProjection().mode = qtgl::GLProjectionMode::PRESPECTIVE;
 
   // light

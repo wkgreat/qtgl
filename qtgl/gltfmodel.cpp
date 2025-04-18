@@ -158,40 +158,48 @@ void GLTFMaterial::fromJson(json& data) {
   }
   this->setPbrMetallicRoughnessTexture(index, texCoord);
 
-  json normalTextureJson = data["normalTexture"];
-  index = normalTextureJson["index"];
-  texCoord = -1;
-  double scale = 1.0;
-  if (normalTextureJson.contains("texCoord")) {
-    texCoord = normalTextureJson["texCoord"];
+  if (data.contains("normalTexture")) {
+    json normalTextureJson = data["normalTexture"];
+    index = normalTextureJson["index"];
+    texCoord = -1;
+    double scale = 1.0;
+    if (normalTextureJson.contains("texCoord")) {
+      texCoord = normalTextureJson["texCoord"];
+    }
+    if (normalTextureJson.contains("scale")) {
+      scale = normalTextureJson["scale"];
+    }
+    this->setNormalTexture(index, texCoord, scale);
   }
-  if (normalTextureJson.contains("scale")) {
-    scale = normalTextureJson["scale"];
-  }
-  this->setNormalTexture(index, texCoord, scale);
 
-  json emissiveTextureJson = data["emissiveTexture"];
-  index = emissiveTextureJson["index"];
-  texCoord = -1;
-  if (emissiveTextureJson.contains("texCoord")) {
-    texCoord = emissiveTextureJson["texCoord"];
+  if (data.contains("emissiveTexture")) {
+    json emissiveTextureJson = data["emissiveTexture"];
+    index = emissiveTextureJson["index"];
+    texCoord = -1;
+    if (emissiveTextureJson.contains("texCoord")) {
+      texCoord = emissiveTextureJson["texCoord"];
+    }
+    this->setEmissiveTexture(index, texCoord);
   }
-  this->setEmissiveTexture(index, texCoord);
 
-  json occlusionTextureJson = data["occlusionTexture"];
-  index = occlusionTextureJson["index"];
-  texCoord = -1;
-  if (occlusionTextureJson.contains("texCoord")) {
-    texCoord = occlusionTextureJson["texCoord"];
+  if (data.contains("occlusionTexture")) {
+    json occlusionTextureJson = data["occlusionTexture"];
+    index = occlusionTextureJson["index"];
+    texCoord = -1;
+    if (occlusionTextureJson.contains("texCoord")) {
+      texCoord = occlusionTextureJson["texCoord"];
+    }
+    double strength = 1.0;
+    if (occlusionTextureJson.contains("strength")) {
+      strength = occlusionTextureJson["strength"];
+    }
+    this->setOcclusionTexture(index, texCoord, strength);
   }
-  double strength = 1.0;
-  if (occlusionTextureJson.contains("strength")) {
-    strength = occlusionTextureJson["strength"];
-  }
-  this->setOcclusionTexture(index, texCoord, strength);
 
-  std::vector<double> emissiveFactor = data["emissiveFactor"].get<std::vector<double>>();
-  this->setEmissiveFactor(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2]);
+  if (data.contains("emissiveFactor")) {
+    std::vector<double> emissiveFactor = data["emissiveFactor"].get<std::vector<double>>();
+    this->setEmissiveFactor(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2]);
+  }
 }
 
 void GLTFImage::fromJson(json& data) {
@@ -242,6 +250,7 @@ void* GLTFAccessor::loadData() {
       throw std::runtime_error("获取数据失败");
     }
     int totoffset = this->getByteOffset() + thebufferview.getByteOffset();
+    rawdata += totoffset;
     int elemlen = this->getElementByteLength();
     int stride = thebufferview.getByteStride();
     if (stride == -1) {
@@ -269,6 +278,7 @@ void GLTFBufferView::fromJson(json& data) {
   int buffer = data["buffer"];
   this->setBuffer(buffer);
   int byteOffset = data.contains("byteOffset") ? data["byteOffset"] : 0;
+  this->setByteOffset(byteOffset);
   int byteLength = data["byteLength"];
   this->setByteLength(byteLength);
   int byteStride = data.contains("byteStride") ? data["byteStride"] : -1;
@@ -387,7 +397,7 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
       if (indicesAccessor.getCount() % 3 != 0) {
         spdlog::error("绘制三角形，但是索引数量不是3的倍数");
       }
-      uint8_t* idxdata = reinterpret_cast<uint8_t*>(indicesAccessor.loadData());
+      uint16_t* idxdata = reinterpret_cast<uint16_t*>(indicesAccessor.loadData());
       int ntriangles = indicesAccessor.getCount() / 3;
       Indices3 indices;
       indices.conservativeResize(ntriangles, Eigen::NoChange);
@@ -398,7 +408,7 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
 
       // position (float vec3)
       GLTFAccessor& posAccessor = model->getAccessors()[p->getAttribute("POSITION")];
-      int npos = posAccessor.getCount() / 3;
+      int npos = posAccessor.getCount();
       if (indicesAccessor.getCount() % 3 != 0) {
         spdlog::error("坐标点维度不为3");
       }
@@ -415,7 +425,7 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
       // normal (float vec3)
       GLTFAccessor& normAccessor = model->getAccessors()[p->getAttribute("NORMAL")];
       float* normdata = reinterpret_cast<float*>(normAccessor.loadData());
-      int nnorm = normAccessor.getCount() / 3;
+      int nnorm = normAccessor.getCount();
       if (normAccessor.getCount() % 3 != 0) {
         spdlog::error("法向量维度不为3");
       }
@@ -438,7 +448,7 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
       MeshType meshType = static_cast<MeshType>(mode);
       std::vector<GLMaterialBase*>& materialBuffer = model->getMaterialBuffer();
       if (materialBuffer.empty()) {
-        materialBuffer.push_back(new GLMaterialRandom());
+        materialBuffer.push_back(new GLMaterialConstant({0.4, 0.5, 0.6, 1}));
       }
       GLPrimitive prim(meshType, indices, worldPos, worldNorm, materialBuffer.back());
       return prim;
@@ -484,15 +494,16 @@ static void getPrimitivesFromNode(GLTFModel* model, GLTFNode& node, Eigen::Matri
 };
 
 std::vector<GLPrimitive> GLTFModel::getPrimitives() {
-  std::vector<GLPrimitive> primitives;
-  // root
-  GLTFScene& root = this->scenes[this->scene];
-  Eigen::Matrix4d mtx = Eigen::Matrix4d::Identity();
-  for (int inode : root.getNodes()) {
-    GLTFNode& node = this->nodes[inode];
-    getPrimitivesFromNode(this, node, mtx, primitives);
+  if (this->primitives.empty()) {
+    // root
+    GLTFScene& root = this->scenes[this->scene];
+    Eigen::Matrix4d mtx = Eigen::Matrix4d::Identity();
+    for (int inode : root.getNodes()) {
+      GLTFNode& node = this->nodes[inode];
+      getPrimitivesFromNode(this, node, mtx, this->primitives);
+    }
   }
-  return primitives;
+  return this->primitives;
 }
 
 };  // namespace qtgl

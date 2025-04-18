@@ -157,27 +157,27 @@ class GLTFMaterial {
   struct pbrMetallicRoughness {
     // TODO baseColorFactor metallicFactor roughnessFactor
     struct {
-      int index;
-      int texCoord = -1;
+      int index = -1;
+      int texCoord = 0;
     } baseColorTexture;
     struct {
-      int index;
-      int texCoord = -1;
+      int index = -1;
+      int texCoord = 0;
     } metallicRoughnessTexture;
   } pbrMetallicRoughness;
   struct normalTexture {
     double scale = 1.0;
-    int index;
-    int texCoord = -1;
+    int index = -1;
+    int texCoord = 0;
   } normalTexture;
   struct emissiveTexture {
-    int index;
-    int texCoord = -1;
+    int index = -1;
+    int texCoord = 0;
   } emissiveTexture;
   struct occlusionTexture {
     double strength = 1.0;
-    int index;
-    int texCoord = -1;
+    int index = -1;
+    int texCoord = 0;
   } occlusionTexture;
   double emissiveFactor[3];
 
@@ -429,6 +429,8 @@ class GLTFModel : public GLModel {
 
   // temp
   std::vector<GLMaterialBase*> materialBuffer;
+
+  std::vector<GLPrimitive> primitives;
 
   void parseFromFile(std::string& path);
 
