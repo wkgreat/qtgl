@@ -4,7 +4,7 @@
 
 namespace qtgl {
 
-void GLTriangleShader::shade(Triangle3& t, GLMaterialBase* m, GLCamera& camera,
+void GLTriangleShader::shade(GLPrimitive& prim, Triangle3& t, GLMaterialBase* m, GLCamera& camera,
                              std::vector<GLLight*>& lights, std::vector<GLShadowMapping*>& shadows,
                              Color01 ambient, Fragments& fragments,
                              Eigen::Matrix4d& invTransformMatrix) {
@@ -22,9 +22,9 @@ void GLTriangleShader::shade(Triangle3& t, GLMaterialBase* m, GLCamera& camera,
   double depth;
   Color01 color;
   Triangle3::BarycentricCoordnates coord;
-  IlluminationModel model = m->getModel();
+  IlluminationModel illum = m->getIllumination();
   std::vector<int> isLightShadow(lights.size());
-  GLShader* shader = getShader(m->getModel());
+  GLShaderBase* shader = getShader(illum);
 
   // clip TODO
 
@@ -65,13 +65,18 @@ void GLTriangleShader::shade(Triangle3& t, GLMaterialBase* m, GLCamera& camera,
           }
         }
 
-        if (model == IlluminationModel::RANDOM) {
+        if (illum == IlluminationModel::RANDOM) {
           color = reinterpret_cast<GLMaterialRandom*>(m)->getColor();
-        } else if (model == IlluminationModel::CONSTANT) {
+        } else if (illum == IlluminationModel::CONSTANT) {
           color = reinterpret_cast<GLMaterialConstant*>(m)->getColor();
-        } else {
-          color = shader->shade2(t, worldPos, camera, coord, lights, isLightShadow,
-                                 reinterpret_cast<GLMaterial*>(m), ambient);
+        } else if (illum == IlluminationModel::LAMBERTIAN ||
+                   illum == IlluminationModel::LAMBERTIAN_BLINN_PHONG) {
+          GLShader* theShader = reinterpret_cast<GLShader*>(shader);
+          color = theShader->shade2(t, worldPos, camera, coord, lights, isLightShadow,
+                                    reinterpret_cast<GLMaterial*>(m), ambient);
+        } else if (illum == IlluminationModel::PBR) {
+          PBRGLShader* theShader = reinterpret_cast<PBRGLShader*>(shader);
+          color = theShader->shade2(t, worldPos, camera, coord, lights, isLightShadow, m, ambient);
         }
 
         fragments[y][x].color = color;

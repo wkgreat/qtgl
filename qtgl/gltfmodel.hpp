@@ -150,7 +150,7 @@ class GLTFPrimitive {
   int getAttribute(std::string k) { return this->attributes[k]; }
 };
 
-class GLTFMaterial {
+class GLTFMaterial : public GLMaterialBase {
  private:
   GLTFModel* model;
   std::string name;
@@ -160,10 +160,13 @@ class GLTFMaterial {
       int index = -1;
       int texCoord = 0;
     } baseColorTexture;
+    double baseColorFactor[4] = {1, 1, 1, 1};
     struct {
       int index = -1;
       int texCoord = 0;
     } metallicRoughnessTexture;
+    double metallicFactor = 1.0;
+    double roughnessFactor = 1.0;
   } pbrMetallicRoughness;
   struct normalTexture {
     double scale = 1.0;
@@ -181,16 +184,33 @@ class GLTFMaterial {
   } occlusionTexture;
   double emissiveFactor[3];
 
+  bool hasPbrBaseColorTexture = false;
+  bool hasPbrMetallicRoughnessTexture = false;
+  bool hasNormalTexture = false;
+  bool hasEmissiveTexture = false;
+  bool hasOcclusionTexture = false;
+
  public:
-  GLTFMaterial(GLTFModel* model) : model(model) {}
+  GLTFMaterial(GLTFModel* model) : model(model) { this->illumination = IlluminationModel::PBR; }
   void setName(std::string& name) { this->name = name; }
   void setPbrBaseColorTexture(int index, int texCoord = -1) {
     this->pbrMetallicRoughness.baseColorTexture.index = index;
     this->pbrMetallicRoughness.baseColorTexture.texCoord = texCoord;
   }
+  void setPbrBaseColorFactor(std::vector<double>& factor) {
+    this->pbrMetallicRoughness.baseColorFactor[0] = factor[0];
+    this->pbrMetallicRoughness.baseColorFactor[1] = factor[1];
+    this->pbrMetallicRoughness.baseColorFactor[2] = factor[2];
+  }
   void setPbrMetallicRoughnessTexture(int index, int texCoord = -1) {
     this->pbrMetallicRoughness.metallicRoughnessTexture.index = index;
     this->pbrMetallicRoughness.metallicRoughnessTexture.texCoord = texCoord;
+  }
+  void setPbrMetallicFactor(double metallic) {
+    this->pbrMetallicRoughness.metallicFactor = metallic;
+  }
+  void setPbrRoughnessFactor(double roughness) {
+    this->pbrMetallicRoughness.roughnessFactor = roughness;
   }
   void setNormalTexture(int index, int texCoord = -1, double scale = 1.0) {
     this->normalTexture.index = index;
@@ -221,6 +241,26 @@ class GLTFMaterial {
   void fromJson(json& data);
 };
 
+class GLTFTexture : public InterpolateGLTexture {
+ private:
+  GLTFModel* model;
+  int sampler;
+  int source;
+  std::string name;
+
+ public:
+  GLTFTexture(GLTFModel* model) : model(model) {}
+  void setSampler(int sampler) { this->sampler = sampler; }
+  void setSource(int source) { this->source = source; }
+  void setName(std::string name) { this->name = name; }
+  int getSampler() { return this->sampler; }
+  int getSource() { return this->source; }
+  std::string getName() { return this->name; }
+
+  void fromJson(json& data);
+  void loadImage();
+};
+
 class GLTFImage {
  private:
   // TODO add other fileds
@@ -230,6 +270,7 @@ class GLTFImage {
  public:
   GLTFImage(GLTFModel* model) : model(model) {}
   void setUri(std::string& uri) { this->uri = uri; }
+  std::string getUri() { return this->uri; }
   void fromJson(json& data);
 };
 
@@ -422,6 +463,7 @@ class GLTFModel : public GLModel {
   std::vector<GLTFNode> nodes;
   std::vector<GLTFMesh> meshes;
   std::vector<GLTFMaterial> materials;
+  std::vector<GLTFTexture> textures;
   std::vector<GLTFImage> images;
   std::vector<GLTFAccessor> accessors;
   std::vector<GLTFBufferView> bufferViews;
@@ -459,6 +501,8 @@ class GLTFModel : public GLModel {
   std::vector<GLTFMesh>& getMeshes() { return this->meshes; }
   void addMaterial(GLTFMaterial& material) { this->materials.push_back(material); }
   std::vector<GLTFMaterial>& getMaterials() { return this->materials; }
+  void addTexture(GLTFTexture& texture) { this->textures.push_back(texture); }
+  std::vector<GLTFTexture>& getTextures() { return this->textures; }
   void addImage(GLTFImage& image) { this->images.push_back(image); }
   std::vector<GLTFImage>& getImages() { return this->images; }
   void addAccessor(GLTFAccessor& accessor) { this->accessors.push_back(accessor); }

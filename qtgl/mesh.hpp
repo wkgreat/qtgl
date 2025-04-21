@@ -62,7 +62,7 @@ class GLObject : public GLModel {
   virtual void transformVerticesToScreen(Eigen::Matrix4d& mtx) = 0;
   virtual void transformWithModelMatrix() = 0;
   virtual void draw(QPainter& painter) = 0;
-  virtual void rasterize(GLScene& scene) = 0;
+  // virtual void rasterize(GLScene& scene) = 0;
   virtual void startEditing() { editing = true; }
   virtual void finishEditing() {
     this->transformWithModelMatrix();
@@ -107,8 +107,8 @@ class GLMeshGroup : public GLObject {
   void transformVerticesToScreen(Eigen::Matrix4d& mtx);
   void transformWithModelMatrix();
 
-  void rasterize(GLScene& scene);
-  void rasterizeTriangle(GLScene& scene, Triangle3& t, GLMaterial* material);
+  // void rasterize(GLScene& scene);
+  // void rasterizeTriangle(GLScene& scene, Triangle3& t, GLMaterial* material);
 
   void drawSkeleton(QPainter& painter);
 
@@ -168,7 +168,7 @@ class GLMesh : public GLObject {
 
   static GLMesh* fromObjModel(ObjModel* model);
 
-  void rasterize(GLScene& scene);
+  // void rasterize(GLScene& scene);
 
   void draw(QPainter& painter);
 

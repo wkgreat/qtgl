@@ -1,4 +1,7 @@
 #include "gltfmodel.hpp"
+#include "stringutils.hpp"
+
+#include <regex>
 
 namespace qtgl {
 
@@ -131,32 +134,49 @@ void GLTFMesh::fromJson(json& data) {
 }
 
 void GLTFMaterial::fromJson(json& data) {
-  if (data.contains("name")) {
-    std::string name = data["name"];
-    this->setName(name);
-  } else {
-    std::string name = "";
-    this->setName(name);
-  }
+  this->name = data.contains("name") ? data["name"] : "";
+
   int index;
   int texCoord;
   json pbrJson = data["pbrMetallicRoughness"];
 
-  json pbrBaseColorJson = pbrJson["baseColorTexture"];
-  index = pbrBaseColorJson["index"];
-  texCoord = -1;
-  if (pbrBaseColorJson.contains("texCoord")) {
-    texCoord = pbrBaseColorJson["texCoord"];
+  if (pbrJson.contains("baseColorTexture")) {
+    json pbrBaseColorJson = pbrJson["baseColorTexture"];
+    index = pbrBaseColorJson["index"];
+    texCoord = -1;
+    if (pbrBaseColorJson.contains("texCoord")) {
+      texCoord = pbrBaseColorJson["texCoord"];
+    }
+    this->setPbrBaseColorTexture(index, texCoord);
+    this->hasPbrBaseColorTexture = true;
+  } else {
+    this->hasPbrBaseColorTexture = false;
   }
-  this->setPbrBaseColorTexture(index, texCoord);
 
-  json pbrMetallicRoughnessJson = pbrJson["metallicRoughnessTexture"];
-  index = pbrMetallicRoughnessJson["index"];
-  texCoord = -1;
-  if (pbrMetallicRoughnessJson.contains("texCoord")) {
-    texCoord = pbrMetallicRoughnessJson["texCoord"];
+  if (pbrJson.contains("baseColorFactor")) {
+    std::vector<double> fs = pbrJson["baseColorFactor"].get<std::vector<double>>();
+    this->setPbrBaseColorFactor(fs);
   }
-  this->setPbrMetallicRoughnessTexture(index, texCoord);
+
+  if (pbrJson.contains("metallicRoughnessTexture")) {
+    json pbrMetallicRoughnessJson = pbrJson["metallicRoughnessTexture"];
+    index = pbrMetallicRoughnessJson["index"];
+    texCoord = -1;
+    if (pbrMetallicRoughnessJson.contains("texCoord")) {
+      texCoord = pbrMetallicRoughnessJson["texCoord"];
+    }
+    this->setPbrMetallicRoughnessTexture(index, texCoord);
+    this->hasPbrMetallicRoughnessTexture = true;
+  } else {
+    this->hasPbrMetallicRoughnessTexture = false;
+  }
+
+  if (pbrJson.contains("metallicFactor")) {
+    this->setPbrMetallicFactor(pbrJson["metallicFactor"]);
+  }
+  if (pbrJson.contains("roughnessFactor")) {
+    this->setPbrRoughnessFactor(pbrJson["roughnessFactor"]);
+  }
 
   if (data.contains("normalTexture")) {
     json normalTextureJson = data["normalTexture"];
@@ -170,6 +190,9 @@ void GLTFMaterial::fromJson(json& data) {
       scale = normalTextureJson["scale"];
     }
     this->setNormalTexture(index, texCoord, scale);
+    this->hasNormalTexture = true;
+  } else {
+    this->hasNormalTexture = false;
   }
 
   if (data.contains("emissiveTexture")) {
@@ -180,6 +203,9 @@ void GLTFMaterial::fromJson(json& data) {
       texCoord = emissiveTextureJson["texCoord"];
     }
     this->setEmissiveTexture(index, texCoord);
+    this->hasEmissiveTexture = true;
+  } else {
+    this->hasEmissiveTexture = false;
   }
 
   if (data.contains("occlusionTexture")) {
@@ -194,11 +220,33 @@ void GLTFMaterial::fromJson(json& data) {
       strength = occlusionTextureJson["strength"];
     }
     this->setOcclusionTexture(index, texCoord, strength);
+    this->hasOcclusionTexture = true;
+  } else {
+    this->hasOcclusionTexture = false;
   }
 
   if (data.contains("emissiveFactor")) {
     std::vector<double> emissiveFactor = data["emissiveFactor"].get<std::vector<double>>();
     this->setEmissiveFactor(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2]);
+  }
+}
+
+void GLTFTexture::fromJson(json& data) {
+  this->name = data.contains("name") ? data["name"] : "";
+  this->sampler = data.contains("sampler") ? data["sampler"] : -1;
+  this->source = data.contains("source") ? data["source"] : -1;
+}
+
+void GLTFTexture::loadImage() {
+  std::string uri = this->model->getImages()[this->source].getUri();
+  std::regex base64_regex("data:image/[^;]+;base64,(.+)");
+  std::smatch match;
+  if (std::regex_search(uri, match, base64_regex)) {
+    std::string base64_data = match[1];
+    std::vector<uchar> image_data = base64_decode(base64_data);
+    this->mat = cv::imdecode(image_data, cv::IMREAD_COLOR);
+  } else {
+    this->mat = cv::imread(uri);
   }
 }
 
@@ -351,6 +399,14 @@ void GLTFModel::parseFromFile(std::string& path) {
     material.fromJson(materialJson);
     this->addMaterial(material);
   }
+
+  // texture
+  for (json textureJson : data["textures"]) {
+    GLTFTexture texture(this);
+    texture.fromJson(textureJson);
+    this->addTexture(texture);
+  }
+
   // images
   for (json imageJson : data["images"]) {
     GLTFImage image(this);
@@ -386,6 +442,21 @@ void GLTFModel::parseFromFile(std::string& path) {
   for (GLTFAccessor& accessor : this->getAccessors()) {
     accessor.loadData();
   }
+
+  for (GLTFTexture& texture : this->getTextures()) {
+    texture.loadImage();
+  }
+}
+
+template <typename T>
+static void loadIndicesFromAccessor(GLTFAccessor& accessor, Indices3& indices) {
+  int ntriangles = accessor.getCount() / 3;
+  indices.conservativeResize(ntriangles, Eigen::NoChange);
+  T* idxdata = reinterpret_cast<T*>(accessor.loadData());
+  for (int i = 0; i < ntriangles; ++i) {
+    Index3 idx(idxdata[i * 3], idxdata[i * 3 + 1], idxdata[i * 3 + 2]);
+    indices.row(i) = idx;
+  }
 }
 
 static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::Matrix4d& mtx) {
@@ -393,17 +464,16 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
 
   if (mode == 4) {
     if (p->getIndices() != -1) {
+      // 这里indices的数据类型可能是两种 unsigned short || unsigned int
       GLTFAccessor& indicesAccessor = model->getAccessors()[p->getIndices()];
+      Indices3 indices;
       if (indicesAccessor.getCount() % 3 != 0) {
         spdlog::error("绘制三角形，但是索引数量不是3的倍数");
       }
-      uint16_t* idxdata = reinterpret_cast<uint16_t*>(indicesAccessor.loadData());
-      int ntriangles = indicesAccessor.getCount() / 3;
-      Indices3 indices;
-      indices.conservativeResize(ntriangles, Eigen::NoChange);
-      for (int i = 0; i < ntriangles; ++i) {
-        Index3 idx(idxdata[i * 3], idxdata[i * 3 + 1], idxdata[i * 3 + 2]);
-        indices.row(i) = idx;
+      if (indicesAccessor.getComponentType() == GLTFComponentType::UNSIGNED_SHORT) {
+        loadIndicesFromAccessor<uint16_t>(indicesAccessor, indices);
+      } else if (indicesAccessor.getComponentType() == GLTFComponentType::UNSIGNED_INT) {
+        loadIndicesFromAccessor<uint32_t>(indicesAccessor, indices);
       }
 
       // position (float vec3)
@@ -439,18 +509,15 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
       Normals worldNorm = AffineUtils::norm_affine(localnorm, mtx.block(0, 0, 3, 3));
 
       // texcoords (float/ubyte normalized/ushort normalized)
+
       // others
 
-      /*
-        GLPrimitive(MeshType type, Indices3& indices, Vertices& worldPos, Normals& normal,
-              GLMaterial* material)
-      */
+      // materials
+      GLMaterialBase* material = &(model->getMaterials()[p->getMaterial()]);
+
       MeshType meshType = static_cast<MeshType>(mode);
-      std::vector<GLMaterialBase*>& materialBuffer = model->getMaterialBuffer();
-      if (materialBuffer.empty()) {
-        materialBuffer.push_back(new GLMaterialConstant({0.4, 0.5, 0.6, 1}));
-      }
-      GLPrimitive prim(meshType, indices, worldPos, worldNorm, materialBuffer.back());
+
+      GLPrimitive prim(meshType, indices, worldPos, worldNorm, material);
       return prim;
 
     } else {

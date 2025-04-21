@@ -167,7 +167,7 @@ void GLScene::rasterize() {
       primitive.transformFromWorldToScreen(this->transformMatrix);
       std::vector<Triangle3> triangles = primitive.getTriangles();
       for (Triangle3& t : triangles) {
-        shader.shade(t, primitive.getMaterial(), this->getCamera(), this->getLights(),
+        shader.shade(primitive, t, primitive.getMaterial(), this->getCamera(), this->getLights(),
                      this->getShadows(), this->getAmbient(), this->getFragments(),
                      primitive.getInvMatrix());
       }
@@ -180,7 +180,10 @@ void GLScene::rasterize() {
       primitive.transformFromWorldToScreen(this->transformMatrix);
       std::vector<Triangle3> triangles = primitive.getTriangles();
       for (Triangle3& t : triangles) {
-        shader.shade(t, primitive.getMaterial(), this->getCamera(), this->getLights(),
+        if (primitive.getMaterial()->getIllumination() != IlluminationModel::PBR) {
+          std::cout << "???" << std::endl;
+        }
+        shader.shade(primitive, t, primitive.getMaterial(), this->getCamera(), this->getLights(),
                      this->getShadows(), this->getAmbient(), this->getFragments(),
                      primitive.getInvMatrix());
       }

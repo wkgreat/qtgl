@@ -94,42 +94,42 @@ void GLMeshGroup::addIndex3(Index3 idx) {
   addIndex3(idx, GLMesh::defaultColor, GLMesh::defaultColor, GLMesh::defaultColor);
 }
 
-void GLMeshGroup::rasterize(GLScene& scene) {
-  int n = indices.rows();
-  for (int i = 0; i < n; ++i) {
-    Index3 idx = indices.row(i);
-    NormIndex normIdx = normIndices.row(i);
-    TexRef ref = texrefs[i];
-    Vertice rp0 = parent->getVertices().row(idx[0]);
-    Vertice rp1 = parent->getVertices().row(idx[1]);
-    Vertice rp2 = parent->getVertices().row(idx[2]);
-    Vertice p0 = parent->getScreenVertices().row(idx[0]);
-    Vertice p1 = parent->getScreenVertices().row(idx[1]);
-    Vertice p2 = parent->getScreenVertices().row(idx[2]);
-    Normal n0 = parent->getTransformedNormals().row(normIdx[0]).normalized();
-    Normal n1 = parent->getTransformedNormals().row(normIdx[1]).normalized();
-    Normal n2 = parent->getTransformedNormals().row(normIdx[2]).normalized();
+// void GLMeshGroup::rasterize(GLScene& scene) {
+//   int n = indices.rows();
+//   for (int i = 0; i < n; ++i) {
+//     Index3 idx = indices.row(i);
+//     NormIndex normIdx = normIndices.row(i);
+//     TexRef ref = texrefs[i];
+//     Vertice rp0 = parent->getVertices().row(idx[0]);
+//     Vertice rp1 = parent->getVertices().row(idx[1]);
+//     Vertice rp2 = parent->getVertices().row(idx[2]);
+//     Vertice p0 = parent->getScreenVertices().row(idx[0]);
+//     Vertice p1 = parent->getScreenVertices().row(idx[1]);
+//     Vertice p2 = parent->getScreenVertices().row(idx[2]);
+//     Normal n0 = parent->getTransformedNormals().row(normIdx[0]).normalized();
+//     Normal n1 = parent->getTransformedNormals().row(normIdx[1]).normalized();
+//     Normal n2 = parent->getTransformedNormals().row(normIdx[2]).normalized();
 
-    GLMaterial* material = parent->getMaterial(ref.mtlname);
+//     GLMaterial* material = parent->getMaterial(ref.mtlname);
 
-    Triangle3 t(p0, p1, p2, n0, n1, n2);
+//     Triangle3 t(p0, p1, p2, n0, n1, n2);
 
-    if (ref.indices[0] != -1 && ref.indices[1] != -1 && ref.indices[2] != -1) {
-      TexCoord t0 = parent->getTexCoords().row(ref.indices[0]);
-      TexCoord t1 = parent->getTexCoords().row(ref.indices[1]);
-      TexCoord t2 = parent->getTexCoords().row(ref.indices[2]);
-      t.addTexCoords(t0, t1, t2);
-    }
-    t.setWorldPos(rp0, rp1, rp2);
-    rasterizeTriangle(scene, t, material);
-  }
-}
+//     if (ref.indices[0] != -1 && ref.indices[1] != -1 && ref.indices[2] != -1) {
+//       TexCoord t0 = parent->getTexCoords().row(ref.indices[0]);
+//       TexCoord t1 = parent->getTexCoords().row(ref.indices[1]);
+//       TexCoord t2 = parent->getTexCoords().row(ref.indices[2]);
+//       t.addTexCoords(t0, t1, t2);
+//     }
+//     t.setWorldPos(rp0, rp1, rp2);
+//     rasterizeTriangle(scene, t, material);
+//   }
+// }
 
-void GLMeshGroup::rasterizeTriangle(GLScene& scene, Triangle3& t, GLMaterial* material) {
-  GLTriangleShader shader;
-  shader.shade(t, material, scene.getCamera(), scene.getLights(), scene.getShadows(),
-               scene.getAmbient(), scene.getFragments(), scene.getInvTranformMatrix());
-}
+// void GLMeshGroup::rasterizeTriangle(GLScene& scene, Triangle3& t, GLMaterial* material) {
+//   GLTriangleShader shader;
+//   shader.shade(t, material, scene.getCamera(), scene.getLights(), scene.getShadows(),
+//                scene.getAmbient(), scene.getFragments(), scene.getInvTranformMatrix());
+// }
 
 std::vector<GLPrimitive> GLMeshGroup::getPrimitives() {
   int n = indices.rows();
@@ -229,11 +229,11 @@ std::vector<GLPrimitive> GLMeshGroup::getPrimitives() {
 const Color01 GLMesh::defaultColor = {1, 1, 1, 1};
 const std::string GLMesh::defaultGroup = "default";
 
-void GLMesh::rasterize(GLScene& scene) {
-  for (auto g : groups) {
-    (g.second)->rasterize(scene);
-  }
-}
+// void GLMesh::rasterize(GLScene& scene) {
+//   for (auto g : groups) {
+//     (g.second)->rasterize(scene);
+//   }
+// }
 
 std::vector<GLPrimitive> GLMesh::getPrimitives() {
   std::vector<GLPrimitive> primitvies;

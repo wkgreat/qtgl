@@ -16,14 +16,14 @@ enum class IlluminationModel {
 
 class GLMaterialBase {
  public:
-  IlluminationModel model;
-  void setModel(IlluminationModel model) { this->model = model; }
-  IlluminationModel getModel() { return model; }
+  IlluminationModel illumination;
+  void setIllumination(IlluminationModel illumination) { this->illumination = illumination; }
+  IlluminationModel getIllumination() { return illumination; }
 };
 
 class GLMaterialRandom : public GLMaterialBase {
  public:
-  GLMaterialRandom() { this->model = IlluminationModel::RANDOM; }
+  GLMaterialRandom() { this->illumination = IlluminationModel::RANDOM; }
   Color01 getColor() { return Color01Utils::random(false); }
 };
 
@@ -32,9 +32,9 @@ class GLMaterialConstant : public GLMaterialBase {
   Color01 color = {0, 0, 0, 0};
 
  public:
-  GLMaterialConstant() { this->model = IlluminationModel::CONSTANT; }
+  GLMaterialConstant() { this->illumination = IlluminationModel::CONSTANT; }
   GLMaterialConstant(Color01 color) {
-    this->model = IlluminationModel::CONSTANT;
+    this->illumination = IlluminationModel::CONSTANT;
     this->color = color;
   }
 
@@ -58,7 +58,7 @@ class GLMaterial : public GLMaterialBase {
   double diffuseTextureAlpha = 0.5;
 
  public:
-  GLMaterial() { this->model = IlluminationModel::LAMBERTIAN; };
+  GLMaterial() { this->illumination = IlluminationModel::LAMBERTIAN; };
   ~GLMaterial() {
     if (ambientTexture) {
       delete ambientTexture;
@@ -75,8 +75,7 @@ class GLMaterial : public GLMaterialBase {
   void setOpticalDensity(double d) { opticalDensity = d; }
   void setDissolve(double d) { dissolve = d; }
   void setIllumination(IlluminationModel model) {
-    illumination = model;
-    this->model = model;
+    this->illumination = model;
     // TODO check the model must be LAMBERTIAN or LAMBERTIAN_BLINN_PHONG
   }
   void setAmbientTexture(GLTexture* texture) { ambientTexture = texture; }

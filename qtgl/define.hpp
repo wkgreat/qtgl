@@ -41,6 +41,7 @@ struct Color01Utils {
   static double green(Color01& c) { return c[1]; }
   static double blue(Color01& c) { return c[2]; }
   static double alpha(Color01& c) { return c[3]; }
+  static Color01 mix(Color01 a, Color01 b, double t) { return a * (1 - t) + b * t; }
   static Color01 clamp(Color01& c) {
     Color01 r;
     r[0] = MathUtils::limit(c[0], 0, 1);
