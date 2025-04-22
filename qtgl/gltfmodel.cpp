@@ -303,13 +303,12 @@ Color01 GLTFMaterial::getBaseColor(TexCoord& t) {
 }
 Eigen::Vector2d GLTFMaterial::getMetallicRoughness(TexCoord& t) {
   if (!this->hasPbrMetallicRoughnessTexture) {
-    double* cs = this->pbrMetallicRoughness.baseColorFactor;
     double m = this->pbrMetallicRoughness.metallicFactor;
     double r = this->pbrMetallicRoughness.roughnessFactor;
     return {m, r};
   } else {
     GLTFTexture& texture =
-        this->model->getTextures()[this->pbrMetallicRoughness.baseColorTexture.index];
+        this->model->getTextures()[this->pbrMetallicRoughness.metallicRoughnessTexture.index];
     Color01 c = texture.sample(t);  // R: None G: roughness B: metallic
     return {c[2], c[1]};
   }

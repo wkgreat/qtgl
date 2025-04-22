@@ -228,7 +228,6 @@ struct PBRGLShader : public GLShaderBase {
     basecolor = m->getBaseColor(t);
 
     // metallic roughness
-
     t = {0, 0};
     k = m->getMetallocRougnnessTexCoordN();
     if (k != -1) {
