@@ -148,6 +148,7 @@ class GLTFPrimitive {
   int getMaterial() const { return this->material; }
   int getIndices() const { return this->indices; }
   int getAttribute(std::string k) { return this->attributes[k]; }
+  std::map<std::string, int>& getAttributes() { return this->attributes; }
 };
 
 class GLTFMaterial : public GLMaterialBase {
@@ -183,6 +184,10 @@ class GLTFMaterial : public GLMaterialBase {
     int texCoord = 0;
   } occlusionTexture;
   double emissiveFactor[3];
+
+  std::string alphaMode = "OPAQUE";
+  double alphaCutoff = 0.5;
+  bool doubleSided = false;
 
   bool hasPbrBaseColorTexture = false;
   bool hasPbrMetallicRoughnessTexture = false;
@@ -231,6 +236,7 @@ class GLTFMaterial : public GLMaterialBase {
     this->emissiveFactor[1] = b;
     this->emissiveFactor[2] = c;
   }
+  void setAlphaMode(std::string alphaMode) { this->alphaMode = alphaMode; }
   std::string getName() { return this->name; }
   struct pbrMetallicRoughness& getPbrMetallicRoughness() { return this->pbrMetallicRoughness; }
   struct normalTexture& getNormalTexture() { return this->normalTexture; }
@@ -239,6 +245,18 @@ class GLTFMaterial : public GLMaterialBase {
   const double* getEmissiveFactor() { return this->emissiveFactor; }
 
   void fromJson(json& data);
+
+  int getBaseColorTexCoordN();
+  int getMetallocRougnnessTexCoordN();
+  int getNormalTexCoordN();
+  int getEmissiveTexCoordN();
+  int getOcclusionTexCoordN();
+
+  Color01 getBaseColor(TexCoord& t);
+  Eigen::Vector2d getMetallicRoughness(TexCoord& t);
+  Normal getNormal(TexCoord& t);
+  Color01 getEmissive(TexCoord& t);
+  double getOcclusion(TexCoord& t);
 };
 
 class GLTFTexture : public InterpolateGLTexture {
@@ -465,6 +483,7 @@ class GLTFModel : public GLModel {
   std::vector<GLTFMaterial> materials;
   std::vector<GLTFTexture> textures;
   std::vector<GLTFImage> images;
+  // TODO sampler
   std::vector<GLTFAccessor> accessors;
   std::vector<GLTFBufferView> bufferViews;
   std::vector<GLTFBuffer> buffers;

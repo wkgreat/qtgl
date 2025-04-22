@@ -143,9 +143,10 @@ void GLTFMaterial::fromJson(json& data) {
   if (pbrJson.contains("baseColorTexture")) {
     json pbrBaseColorJson = pbrJson["baseColorTexture"];
     index = pbrBaseColorJson["index"];
-    texCoord = -1;
     if (pbrBaseColorJson.contains("texCoord")) {
       texCoord = pbrBaseColorJson["texCoord"];
+    } else {
+      texCoord = 0;
     }
     this->setPbrBaseColorTexture(index, texCoord);
     this->hasPbrBaseColorTexture = true;
@@ -161,9 +162,10 @@ void GLTFMaterial::fromJson(json& data) {
   if (pbrJson.contains("metallicRoughnessTexture")) {
     json pbrMetallicRoughnessJson = pbrJson["metallicRoughnessTexture"];
     index = pbrMetallicRoughnessJson["index"];
-    texCoord = -1;
     if (pbrMetallicRoughnessJson.contains("texCoord")) {
       texCoord = pbrMetallicRoughnessJson["texCoord"];
+    } else {
+      texCoord = 0;
     }
     this->setPbrMetallicRoughnessTexture(index, texCoord);
     this->hasPbrMetallicRoughnessTexture = true;
@@ -181,13 +183,16 @@ void GLTFMaterial::fromJson(json& data) {
   if (data.contains("normalTexture")) {
     json normalTextureJson = data["normalTexture"];
     index = normalTextureJson["index"];
-    texCoord = -1;
     double scale = 1.0;
     if (normalTextureJson.contains("texCoord")) {
       texCoord = normalTextureJson["texCoord"];
+    } else {
+      texCoord = 0;
     }
     if (normalTextureJson.contains("scale")) {
       scale = normalTextureJson["scale"];
+    } else {
+      scale = 1.0;
     }
     this->setNormalTexture(index, texCoord, scale);
     this->hasNormalTexture = true;
@@ -198,9 +203,10 @@ void GLTFMaterial::fromJson(json& data) {
   if (data.contains("emissiveTexture")) {
     json emissiveTextureJson = data["emissiveTexture"];
     index = emissiveTextureJson["index"];
-    texCoord = -1;
     if (emissiveTextureJson.contains("texCoord")) {
       texCoord = emissiveTextureJson["texCoord"];
+    } else {
+      texCoord = 0;
     }
     this->setEmissiveTexture(index, texCoord);
     this->hasEmissiveTexture = true;
@@ -211,13 +217,16 @@ void GLTFMaterial::fromJson(json& data) {
   if (data.contains("occlusionTexture")) {
     json occlusionTextureJson = data["occlusionTexture"];
     index = occlusionTextureJson["index"];
-    texCoord = -1;
     if (occlusionTextureJson.contains("texCoord")) {
       texCoord = occlusionTextureJson["texCoord"];
+    } else {
+      texCoord = 0;
     }
     double strength = 1.0;
     if (occlusionTextureJson.contains("strength")) {
       strength = occlusionTextureJson["strength"];
+    } else {
+      strength = 1.0;
     }
     this->setOcclusionTexture(index, texCoord, strength);
     this->hasOcclusionTexture = true;
@@ -228,7 +237,99 @@ void GLTFMaterial::fromJson(json& data) {
   if (data.contains("emissiveFactor")) {
     std::vector<double> emissiveFactor = data["emissiveFactor"].get<std::vector<double>>();
     this->setEmissiveFactor(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2]);
+  } else {
+    this->setEmissiveFactor(0, 0, 0);
   }
+
+  if (data.contains("alphaMode")) {
+    this->alphaMode = data["alphaMode"];
+  }
+
+  if (data.contains("alphaCutoff")) {
+    this->alphaCutoff = data["alphaCutoff"];
+  }
+
+  if (data.contains("doubleSided")) {
+    this->doubleSided = data["doubleSided"];
+  }
+}
+
+int GLTFMaterial::getBaseColorTexCoordN() {
+  if (this->hasPbrBaseColorTexture) {
+    return this->pbrMetallicRoughness.baseColorTexture.texCoord;
+  } else {
+    return -1;
+  }
+}
+int GLTFMaterial::getMetallocRougnnessTexCoordN() {
+  if (this->hasPbrMetallicRoughnessTexture) {
+    return this->pbrMetallicRoughness.metallicRoughnessTexture.texCoord;
+  } else {
+    return -1;
+  }
+}
+int GLTFMaterial::getNormalTexCoordN() {
+  if (this->hasNormalTexture) {
+    return this->normalTexture.texCoord;
+  } else {
+    return -1;
+  }
+}
+int GLTFMaterial::getEmissiveTexCoordN() {
+  if (this->hasEmissiveTexture) {
+    return this->emissiveTexture.texCoord;
+  } else {
+    return -1;
+  }
+}
+int GLTFMaterial::getOcclusionTexCoordN() {
+  if (this->hasOcclusionTexture) {
+    return this->occlusionTexture.texCoord;
+  } else {
+    return -1;
+  }
+}
+
+Color01 GLTFMaterial::getBaseColor(TexCoord& t) {
+  // TODO
+  if (!this->hasPbrBaseColorTexture) {
+    double* cs = this->pbrMetallicRoughness.baseColorFactor;
+    return {cs[0], cs[1], cs[2], 1};
+  } else {
+    GLTFTexture& texture =
+        this->model->getTextures()[this->pbrMetallicRoughness.baseColorTexture.index];
+    return texture.sample(t);
+  }
+}
+Eigen::Vector2d GLTFMaterial::getMetallicRoughness(TexCoord& t) {
+  if (!this->hasPbrMetallicRoughnessTexture) {
+    double* cs = this->pbrMetallicRoughness.baseColorFactor;
+    double m = this->pbrMetallicRoughness.metallicFactor;
+    double r = this->pbrMetallicRoughness.roughnessFactor;
+    return {m, r};
+  } else {
+    GLTFTexture& texture =
+        this->model->getTextures()[this->pbrMetallicRoughness.baseColorTexture.index];
+    Color01 c = texture.sample(t);  // R: None G: roughness B: metallic
+    return {c[2], c[1]};
+  }
+}
+Normal GLTFMaterial::getNormal(TexCoord& t) {
+  // TODO
+  return {0, 0, 0};
+}
+Color01 GLTFMaterial::getEmissive(TexCoord& t) {
+  if (!this->hasEmissiveTexture) {
+    return {0, 0, 0, 1};
+  } else {
+    GLTFTexture& texture = this->model->getTextures()[this->emissiveTexture.index];
+    Color01 c = texture.sample(t);
+    return c;
+  }
+}
+double GLTFMaterial::getOcclusion(TexCoord& t) {
+  // TODO
+  return 0;
 }
 
 void GLTFTexture::fromJson(json& data) {
@@ -243,10 +344,12 @@ void GLTFTexture::loadImage() {
   std::smatch match;
   if (std::regex_search(uri, match, base64_regex)) {
     std::string base64_data = match[1];
-    std::vector<uchar> image_data = base64_decode(base64_data);
+    std::vector<uchar> image_data = stringutils::base64_decode(base64_data);
     this->mat = cv::imdecode(image_data, cv::IMREAD_COLOR);
   } else {
-    this->mat = cv::imread(uri);
+    std::filesystem::path puri(uri);
+    std::filesystem::path fullpath = this->model->getDir() / puri;
+    this->mat = cv::imread(fullpath.string());
   }
 }
 
@@ -508,16 +611,60 @@ static GLPrimitive fromGLTFPrimitve(GLTFModel* model, GLTFPrimitive* p, Eigen::M
       }
       Normals worldNorm = AffineUtils::norm_affine(localnorm, mtx.block(0, 0, 3, 3));
 
-      // texcoords (float/ubyte normalized/ushort normalized)
-
-      // others
-
-      // materials
+      // material
       GLMaterialBase* material = &(model->getMaterials()[p->getMaterial()]);
 
       MeshType meshType = static_cast<MeshType>(mode);
-
       GLPrimitive prim(meshType, indices, worldPos, worldNorm, material);
+
+      // texcoords (float/ubyte normalized/ushort normalized)
+      for (auto pair : p->getAttributes()) {
+        if (stringutils::start_with(pair.first, "TEXCOORD")) {
+          std::vector<std::string> ss = stringutils::split(pair.first, '_');
+          int k = stringutils::string2int(ss.back());
+          int v = pair.second;
+          TexCoords texcoords;
+
+          GLTFAccessor& texCoordAccessor = model->getAccessors()[v];
+          if (texCoordAccessor.getType() != GLTFElementType::VEC2) {
+            spdlog::error("texcoord的accessor元素类型错误! {}", texCoordAccessor.getType());
+          }
+          if (texCoordAccessor.getComponentType() != GLTFComponentType::BYTE &&
+              texCoordAccessor.getComponentType() != GLTFComponentType::UNSIGNED_SHORT &&
+              texCoordAccessor.getComponentType() != GLTFComponentType::FLOAT) {
+            spdlog::error("texcoord的accessor数据类型错误! {}",
+                          static_cast<int>(texCoordAccessor.getComponentType()));
+          }
+          int ntexcoord = texCoordAccessor.getCount();
+          texcoords.conservativeResize(ntexcoord, Eigen::NoChange);
+          if (texCoordAccessor.getComponentType() == GLTFComponentType::BYTE) {
+            uint8_t* data = reinterpret_cast<uint8_t*>(texCoordAccessor.loadData());
+            for (int i = 0; i < ntexcoord; ++i) {
+              TexCoord texcoord(data[i * 2] / 255.0, data[i * 2 + 1] / 255.0);
+              texcoords.row(i) = texcoord;
+            }
+          }
+          if (texCoordAccessor.getComponentType() == GLTFComponentType::UNSIGNED_INT) {
+            uint32_t* data = reinterpret_cast<uint32_t*>(texCoordAccessor.loadData());
+            for (int i = 0; i < ntexcoord; ++i) {
+              TexCoord texcoord(data[i * 2] / 4294967295.0, data[i * 2 + 1] / 4294967295.0);
+              texcoords.row(i) = texcoord;
+            }
+          }
+          if (texCoordAccessor.getComponentType() == GLTFComponentType::FLOAT) {
+            float* data = reinterpret_cast<float*>(texCoordAccessor.loadData());
+            for (int i = 0; i < ntexcoord; ++i) {
+              // GLTF默认坐标原点为左上角，但是实际渲染时使用原点为左下角的坐标系
+              // 所以UV中的V需要反转
+              TexCoord texcoord(data[i * 2], 1 - data[i * 2 + 1]);
+              texcoords.row(i) = texcoord;
+            }
+          }
+
+          prim.addTexCoord(k, texcoords);
+        }
+      }
+
       return prim;
 
     } else {

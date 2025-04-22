@@ -5,6 +5,8 @@
 #include "render.hpp"
 
 int main(int argc, char* argv[]) {
+  spdlog::set_level(spdlog::level::trace);
+
   QApplication app(argc, argv);
   QWidget* window = new QWidget;
   window->setWindowTitle("QTGL");
@@ -60,7 +62,7 @@ int main(int argc, char* argv[]) {
   // light
   qtgl::PointGLLight* lgt = new qtgl::PointGLLight;
   lgt->setIntensity({1, 1, 1, 1});
-  lgt->setPosition({-500, 500, 500, 0});
+  lgt->setPosition({-20, 20, 20, 0});
   widget.getScene().addLight(lgt);
   widget.getScene().setAmbient({0.5, 0.5, 0.5, 0.5});
   widget.getScene().disableShadow();

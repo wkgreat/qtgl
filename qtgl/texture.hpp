@@ -76,6 +76,12 @@ class InterpolateGLTexture : public GLTexture {
   InterpolateMethod getInterpolateMethod() { return this->interpolateMtd; }
 
   Color01 sample(TexCoord& coord) {
+    // TODO warp mode;
+    while (coord[0] < 0) coord[0] += 1;
+    while (coord[0] > 1) coord[0] -= 1;
+    while (coord[1] < 0) coord[1] += 1;
+    while (coord[1] > 1) coord[1] -= 1;
+
     switch (interpolateMtd) {
       case InterpolateMethod::LIINEAR:
         return sample_linear(coord);

@@ -5,6 +5,7 @@
 
 namespace qtgl {
 
+namespace stringutils {
 std::vector<unsigned char> base64_decode(const std::string& encoded_string) {
   const std::string base64_chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -54,5 +55,25 @@ std::vector<unsigned char> base64_decode(const std::string& encoded_string) {
 
   return decoded_data;
 }
+
+bool start_with(std::string s, std::string a) {
+  return s.size() >= a.size() && s.compare(0, a.size(), a) == 0;
+}
+
+std::vector<std::string> split(std::string s, char a) {
+  std::vector<std::string> r;
+  std::stringstream ss(s);
+  std::string token;
+
+  while (std::getline(ss, token, a)) {
+    r.push_back(token);
+  }
+
+  return r;
+}
+
+int string2int(std::string s) { return std::stoi(s); }
+
+}  // namespace stringutils
 
 }  // namespace qtgl

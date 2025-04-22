@@ -5,6 +5,7 @@
 #include "camera.hpp"
 #include "define.hpp"
 #include "event.hpp"
+#include "gltfmodel.hpp"
 #include "material.hpp"
 #include "primitive.hpp"
 
@@ -207,6 +208,8 @@ struct PBRGLShader : public GLShaderBase {
   Color01 shade2(Triangle3& triangle, Vertice& worldPos, GLCamera& camera,
                  Triangle3::BarycentricCoordnates& centricCoord, std::vector<GLLight*>& lights,
                  std::vector<int>& isLightShadow, GLMaterialBase* material, Color01 ambient) {
+    GLTFMaterial* m = reinterpret_cast<GLTFMaterial*>(material);
+
     Color01 finalcolor = {0, 0, 0, 1};
     Normal N =
         (centricCoord.alpha * triangle.getNormal0() + centricCoord.beta * triangle.getNormal1() +
@@ -214,9 +217,27 @@ struct PBRGLShader : public GLShaderBase {
             .normalized();  // TODO 使用法线贴图
     Eigen::Vector3d V = (camera.getPositionVertice().head(3) - worldPos.head(3)).normalized();
 
-    Color01 basecolor = {1, 1, 1, 1};  // TODO get basecolor
-    double metallic = 1.0;             // TODO get metallic
-    double roughness = 1.0;            // TODO get roughness;
+    // base color
+    Color01 basecolor = {1, 0, 0, 1};
+    int k = m->getBaseColorTexCoordN();
+    TexCoord t = {0, 0};
+    if (k != -1) {
+      t = GLTexture::interpolateTexCoord(triangle, k, centricCoord.alpha, centricCoord.beta,
+                                         centricCoord.gamma);
+    }
+    basecolor = m->getBaseColor(t);
+
+    // metallic roughness
+
+    t = {0, 0};
+    k = m->getMetallocRougnnessTexCoordN();
+    if (k != -1) {
+      t = GLTexture::interpolateTexCoord(triangle, k, centricCoord.alpha, centricCoord.beta,
+                                         centricCoord.gamma);
+    }
+    Eigen::Vector2d mr = m->getMetallicRoughness(t);
+    double metallic = mr[0];
+    double roughness = mr[1];
 
     // brdf
     for (GLLight* lgt : lights) {
@@ -224,6 +245,7 @@ struct PBRGLShader : public GLShaderBase {
       Eigen::Vector3d L = lgt->uvLight(worldPos);
       Eigen::Vector3d H = (L + V).normalized();
       Color01 c = brdf(basecolor, metallic, roughness, N, L, V, H);
+      // Color01 c = basecolor;
       finalcolor = finalcolor + c;
     }
 
@@ -233,11 +255,18 @@ struct PBRGLShader : public GLShaderBase {
     finalcolor = addOcclusion(finalcolor, acclusion, acclusionStrengh);
 
     // emmissive
-    Eigen::Vector3d emissive = {0, 0, 0};        // TODO get emissive;
-    Eigen::Vector3d emissiveFactor = {0, 0, 0};  // TODO get emmissive factor;
+    t = {0, 0};
+    k = m->getEmissiveTexCoordN();
+    if (k != -1) {
+      t = GLTexture::interpolateTexCoord(triangle, k, centricCoord.alpha, centricCoord.beta,
+                                         centricCoord.gamma);
+    }
+    Eigen::Vector3d emissive = m->getEmissive(t).head(3);
+    Eigen::Vector3d emissiveFactor(m->getEmissiveFactor());
     finalcolor = addEmmissive(finalcolor, emissive, emissiveFactor);
 
     finalcolor = Color01Utils::clamp(finalcolor);
+    finalcolor[3] = 1;
 
     return finalcolor;
   };
