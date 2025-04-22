@@ -250,8 +250,14 @@ struct PBRGLShader : public GLShaderBase {
     }
 
     // acclusion
-    double acclusion = 1.0;         // TODO get acclusion;
-    double acclusionStrengh = 1.0;  // TODO get acclusion strength;
+    t = {0, 0};
+    k = m->getMetallocRougnnessTexCoordN();
+    if (k != -1) {
+      t = GLTexture::interpolateTexCoord(triangle, k, centricCoord.alpha, centricCoord.beta,
+                                         centricCoord.gamma);
+    }
+    double acclusion = m->getOcclusion(t);
+    double acclusionStrengh = m->getOcclusionStrength();
     finalcolor = addOcclusion(finalcolor, acclusion, acclusionStrengh);
 
     // emmissive

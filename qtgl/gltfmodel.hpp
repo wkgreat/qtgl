@@ -257,6 +257,7 @@ class GLTFMaterial : public GLMaterialBase {
   Normal getNormal(TexCoord& t);
   Color01 getEmissive(TexCoord& t);
   double getOcclusion(TexCoord& t);
+  double getOcclusionStrength();
 };
 
 class GLTFTexture : public InterpolateGLTexture {

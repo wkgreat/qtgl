@@ -328,8 +328,21 @@ Color01 GLTFMaterial::getEmissive(TexCoord& t) {
   }
 }
 double GLTFMaterial::getOcclusion(TexCoord& t) {
-  // TODO
-  return 0;
+  if (!this->hasOcclusionTexture) {
+    return 1.0;
+  } else {
+    GLTFTexture& texture = this->model->getTextures()[this->occlusionTexture.index];
+    Color01 c = texture.sample(t);
+    return c[0];
+  }
+}
+
+double GLTFMaterial::getOcclusionStrength() {
+  if (!this->hasOcclusionTexture) {
+    return 1.0;
+  } else {
+    return this->getOcclusionTexture().strength;
+  }
 }
 
 void GLTFTexture::fromJson(json& data) {
