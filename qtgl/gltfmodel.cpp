@@ -357,7 +357,7 @@ void GLTFTexture::loadImage() {
   if (std::regex_search(uri, match, base64_regex)) {
     std::string base64_data = match[1];
     std::vector<uchar> image_data = stringutils::base64_decode(base64_data);
-    this->mat = cv::imdecode(image_data, cv::IMREAD_COLOR);
+    this->mat = cv::imdecode(image_data, cv::IMREAD_UNCHANGED);
   } else {
     std::filesystem::path puri(uri);
     std::filesystem::path fullpath = this->model->getDir() / puri;

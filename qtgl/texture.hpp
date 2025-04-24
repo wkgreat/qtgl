@@ -96,7 +96,8 @@ class InterpolateGLTexture : public GLTexture {
     while (u < 0) u += mat.cols;
     while (v < 0) v += mat.rows;
     cv::Vec3b c = mat.at<cv::Vec3b>(v % mat.rows, u % mat.cols);
-    return {c[0] / 255.0, c[1] / 255.0, c[2] / 255.0, 1};
+    // opencv里面图像默认使用BGR顺序存储
+    return {c[2] / 255.0, c[1] / 255.0, c[0] / 255.0, 1};
   }
 
   /*
