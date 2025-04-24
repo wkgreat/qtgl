@@ -227,6 +227,9 @@ struct PBRGLShader : public GLShaderBase {
     }
     basecolor = m->getBaseColor(t);
 
+    // gamma矫正转成线性空间
+    basecolor = basecolor.array().pow(2.2);
+
     // metallic roughness
     t = {0, 0};
     k = m->getMetallocRougnnessTexCoordN();
@@ -268,7 +271,11 @@ struct PBRGLShader : public GLShaderBase {
     }
     Eigen::Vector3d emissive = m->getEmissive(t).head(3);
     Eigen::Vector3d emissiveFactor(m->getEmissiveFactor());
+    emissive = emissive.array().pow(2.2);  // gamma矫正转成线性空间
     finalcolor = addEmmissive(finalcolor, emissive, emissiveFactor);
+
+    // gamma矫正 转sRGB
+    finalcolor = finalcolor.array().pow(1.0 / 2.2);
 
     finalcolor = Color01Utils::clamp(finalcolor);
     finalcolor[3] = 1;
