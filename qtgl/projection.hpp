@@ -15,13 +15,13 @@ class GLProjection {
   double width;
   double near;
   double far;
+  double hfov = MathUtils::PI / 3;
   GLProjectionMode mode;
   GLProjection()
-      : height(768), width(1024), near(0.1f), far(100), mode(GLProjectionMode::PRESPECTIVE) {}
+      : height(768), width(1024), near(1), far(2000), mode(GLProjectionMode::PRESPECTIVE) {}
   GLProjection(double height, double width, double near, double far, GLProjectionMode mode)
       : height(height), width(width), near(near), far(far), mode(mode) {}
   Eigen::Matrix4d orthographicProjMatrix() {
-    double hfov = MathUtils::PI / 3;
     double vfov = hfov * (height / width);
     double right = tan(hfov / 2) * near;
     double left = -right;
@@ -43,7 +43,6 @@ class GLProjection {
     return projMtx;
   }
   Eigen::Matrix4d perspectiveProjMatrix() {
-    double hfov = MathUtils::PI / 3;
     double vfov = hfov * (height / width);
     double right = tan(hfov / 2) * near;
     double left = -right;

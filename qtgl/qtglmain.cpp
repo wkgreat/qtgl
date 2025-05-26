@@ -59,6 +59,17 @@ int main(int argc, char* argv[]) {
   widget.getScene().getCamera().lookAt(-20, 20, 20, 0, 0, 0);
   widget.getScene().getProjection().mode = qtgl::GLProjectionMode::PRESPECTIVE;
 
+  // skybox
+  std::string px_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\pos-x.jpg";
+  std::string py_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\pos-y.jpg";
+  std::string pz_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\pos-z.jpg";
+  std::string nx_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\neg-x.jpg";
+  std::string ny_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\neg-y.jpg";
+  std::string nz_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\neg-z.jpg";
+  std::shared_ptr<qtgl::CubeTexture> cubeTexture =
+      std::make_shared<qtgl::CubeTexture>(px_path, py_path, pz_path, nx_path, ny_path, nz_path);
+  widget.getScene().setSkyBox(cubeTexture);
+
   // light
   qtgl::PointGLLight* lgt = new qtgl::PointGLLight;
   lgt->setIntensity({1, 1, 1, 1});
@@ -83,6 +94,20 @@ int main(int argc, char* argv[]) {
 
   window->setLayout(layout);
   window->show();
+
+  widget.getScene().calculateTransformMatrix();
+  std::cout << "World Position: " << std::endl;
+  qtgl::Vertice world_pos = {1, 1, 1, 1};
+  qtgl::Vertice screen_pos = world_pos.transpose() * widget.getScene().getTranformMatrix();
+  screen_pos = screen_pos / screen_pos[3];
+  std::cout << "screen_pos 2: " << std::endl;
+  std::cout << screen_pos[0] << "," << screen_pos[1] << "," << screen_pos[2] << "," << screen_pos[3]
+            << std::endl;
+  qtgl::Vertice world_pos_2;
+  world_pos_2 = widget.getScene().screenVerticeBackToWorldVertice(screen_pos);
+  std::cout << "World Position 2: " << std::endl;
+  std::cout << world_pos_2[0] << "," << world_pos_2[1] << "," << world_pos_2[2] << ","
+            << world_pos_2[3] << std::endl;
 
   return app.exec();
 }

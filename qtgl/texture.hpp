@@ -5,6 +5,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/opencv.hpp>
 #include "define.hpp"
 
 namespace qtgl {
@@ -65,6 +66,7 @@ class InterpolateGLTexture : public GLTexture {
   ~InterpolateGLTexture() = default;
   InterpolateGLTexture(std::string mapref) {
     cv::Mat img = cv::imread(mapref);
+    // cv::resize(img, img, cv::Size(512 * 10, 512 * 10), cv::INTER_LANCZOS4);  // TODO 按情况resize
     if (img.empty()) {
       std::cerr << "Error: cannot load image " << mapref << std::endl;
       return;
@@ -130,6 +132,122 @@ class InterpolateGLTexture : public GLTexture {
     Color01 c11 = colorAt(iu1, iv1) * (1 - au) * (1 - av);
     Color01 c = c00 + c01 + c10 + c11;
     return c;
+  }
+};
+
+enum class CubeTextureFace { POS_X, NEG_X, POS_Y, NEG_Y, POS_Z, NEG_Z };
+
+class CubeTexture {
+ private:
+  std::string px_path;
+  std::string py_path;
+  std::string pz_path;
+  std::string nx_path;
+  std::string ny_path;
+  std::string nz_path;
+
+  std::shared_ptr<InterpolateGLTexture> px;
+  std::shared_ptr<InterpolateGLTexture> py;
+  std::shared_ptr<InterpolateGLTexture> pz;
+  std::shared_ptr<InterpolateGLTexture> nx;
+  std::shared_ptr<InterpolateGLTexture> ny;
+  std::shared_ptr<InterpolateGLTexture> nz;
+
+ public:
+  CubeTexture(std::string px_path, std::string py_path, std::string pz_path, std::string nx_path,
+              std::string ny_path, std::string nz_path)
+      : px_path(px_path),
+        py_path(py_path),
+        pz_path(pz_path),
+        nx_path(nx_path),
+        ny_path(ny_path),
+        nz_path(nz_path) {
+    px = std::make_shared<InterpolateGLTexture>(px_path);
+    py = std::make_shared<InterpolateGLTexture>(py_path);
+    pz = std::make_shared<InterpolateGLTexture>(pz_path);
+    nx = std::make_shared<InterpolateGLTexture>(nx_path);
+    ny = std::make_shared<InterpolateGLTexture>(ny_path);
+    nz = std::make_shared<InterpolateGLTexture>(nz_path);
+
+    px->setInterpolateMethod(InterpolateMethod::BILINEAR);
+    py->setInterpolateMethod(InterpolateMethod::BILINEAR);
+    pz->setInterpolateMethod(InterpolateMethod::BILINEAR);
+    nx->setInterpolateMethod(InterpolateMethod::BILINEAR);
+    ny->setInterpolateMethod(InterpolateMethod::BILINEAR);
+    nz->setInterpolateMethod(InterpolateMethod::BILINEAR);
+  }
+
+  Color01 sample(Eigen::Vector3d d) {
+    d = d.normalized();
+    double x = d[0];
+    double y = d[1];
+    double z = d[2];
+    double ax = std::fabs(x);
+    double ay = std::fabs(y);
+    double az = std::fabs(z);
+    double u, v;
+    CubeTextureFace face;
+    if (ax >= ay && ax >= az) {
+      if (x > 0.0) {
+        face = CubeTextureFace::POS_X;  //+x
+        u = -z / ax;
+        v = y / ax;
+      } else {
+        face = CubeTextureFace::NEG_X;  //-x
+        u = z / ax;
+        v = y / ax;
+      }
+    } else if (ay >= ax && ay >= az) {
+      if (y > 0.0) {
+        face = CubeTextureFace::POS_Y;  // +y
+        u = x / ay;
+        v = -z / ay;
+      } else {
+        face = CubeTextureFace::NEG_Y;  //-y
+        u = x / ay;
+        v = z / ay;
+      }
+    } else {
+      if (z > 0.0) {
+        face = CubeTextureFace::POS_Z;  //+z
+        u = x / az;
+        v = y / az;
+      } else {
+        face = CubeTextureFace::NEG_Z;  //-z
+        u = -x / az;
+        v = y / az;
+      }
+    }
+
+    u = u * 0.5 + 0.5;
+    v = v * 0.5 + 0.5;
+
+    u = std::clamp(u, 0.0, 1.0);
+    v = std::clamp(v, 0.0, 1.0);
+    TexCoord texcoord = {u, v};
+    Color01 color;
+
+    switch (face) {
+      case CubeTextureFace::POS_X:
+        color = this->px->sample(texcoord);
+        break;
+      case CubeTextureFace::NEG_X:
+        color = this->nx->sample(texcoord);
+        break;
+      case CubeTextureFace::POS_Y:
+        color = this->py->sample(texcoord);
+        break;
+      case CubeTextureFace::NEG_Y:
+        color = this->ny->sample(texcoord);
+        break;
+      case CubeTextureFace::POS_Z:
+        color = this->pz->sample(texcoord);
+        break;
+      case CubeTextureFace::NEG_Z:
+        color = this->nz->sample(texcoord);
+        break;
+    }
+    return color;
   }
 };
 

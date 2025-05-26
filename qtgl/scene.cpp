@@ -121,6 +121,7 @@ Vertice GLScene::screenVerticeBackToCameraVertice(Vertice v) {
 }
 
 Eigen::Matrix4d& GLScene::getInvTranformMatrix() { return this->invTransformMatrix; }
+Eigen::Matrix4d& GLScene::getTranformMatrix() { return this->transformMatrix; }
 
 Fragments GLScene::initFragmentsBuffer() {
   Fragments fs(this->viewHeight, std::vector<Fragment>(this->viewWidth, Fragment::init()));
@@ -161,9 +162,13 @@ void GLScene::rasterize() {
   fragments = initFragmentsBuffer();  // TODO clear rather than init new
   calculateTransformMatrix();
 
+  // 在这里绘制天空盒
+  drawSkyBox();
+
+  // 绘制对象和模型
   for (GLObject* obj : objs) {
-    std::vector<GLPrimitive> primitives = obj->getPrimitives();
-    for (GLPrimitive& primitive : primitives) {
+    std::vector<GLPrimitive> primitives = obj->getPrimitives();  // 获取图元
+    for (GLPrimitive& primitive : primitives) {                  // 对于每个图元进行渲染
       primitive.transformFromWorldToScreen(this->transformMatrix);
       std::vector<Triangle3> triangles = primitive.getTriangles();
       for (Triangle3& t : triangles) {
@@ -175,14 +180,11 @@ void GLScene::rasterize() {
   }
 
   for (GLModel* model : models) {
-    std::vector<GLPrimitive> primitives = model->getPrimitives();
-    for (GLPrimitive& primitive : primitives) {
+    std::vector<GLPrimitive> primitives = model->getPrimitives();  // 获取图元
+    for (GLPrimitive& primitive : primitives) {                    // 对于每个图元进行渲染
       primitive.transformFromWorldToScreen(this->transformMatrix);
       std::vector<Triangle3> triangles = primitive.getTriangles();
       for (Triangle3& t : triangles) {
-        if (primitive.getMaterial()->getIllumination() != IlluminationModel::PBR) {
-          std::cout << "???" << std::endl;
-        }
         shader.shade(primitive, t, primitive.getMaterial(), this->getCamera(), this->getLights(),
                      this->getShadows(), this->getAmbient(), this->getFragments(),
                      primitive.getInvMatrix());
@@ -207,6 +209,24 @@ void GLScene::draw(QPainter& painter) {
         painter.drawPoint(w, h);
         painter.setPen(oldpen);
       }
+    }
+  }
+}
+
+void GLScene::drawSkyBox() {
+  if (!this->skybox) {
+    return;
+  }
+
+  for (int h = 0; h < this->viewHeight; ++h) {
+    for (int w = 0; w < this->viewWidth; ++w) {
+      double x = w + 0.5;
+      double y = h + 0.5;
+      Vertice worldPos = this->screenVerticeBackToWorldVertice(x, y, 1, 1);
+      Eigen::Vector3d d = worldPos.head(3) - this->getCamera().getPositionVertice().head(3);
+      d.normalize();
+      fragments[h][w].color = this->skybox->sample(d);
+      fragments[h][w].depth = 1.0;
     }
   }
 }

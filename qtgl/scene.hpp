@@ -31,6 +31,8 @@ class GLScene {
   bool enabledShadow = false;
   std::vector<GLShadowMapping*> shadows;
 
+  std::shared_ptr<CubeTexture> skybox;
+
   Eigen::Matrix4d transformMatrix;
   Eigen::Matrix4d invTransformMatrix;
 
@@ -78,6 +80,8 @@ class GLScene {
   }
   std::vector<GLShadowMapping*>& getShadows();
 
+  void setSkyBox(std::shared_ptr<CubeTexture> skybox) { this->skybox = skybox; }
+
   GLEventBus* getEventBus() { return this->eventBus; }
 
   Eigen::Matrix4d viewportMatrix();
@@ -92,6 +96,7 @@ class GLScene {
   Vertice screenVerticeBackToCameraVertice(Vertice v);
 
   Eigen::Matrix4d& getInvTranformMatrix();
+  Eigen::Matrix4d& getTranformMatrix();
 
   void meshTransformToScreen(GLObject* obj);
 
@@ -102,6 +107,8 @@ class GLScene {
   void draw(QPainter& painter);
 
   bool isTriangleBack(Vertice& rp0, Vertice& rp1, Vertice& rp2, Normal& n0, Normal& n1, Normal& n2);
+
+  void drawSkyBox();
 };
 
 class GLSceneConfiguration {
