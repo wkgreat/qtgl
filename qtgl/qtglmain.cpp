@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
   // }
 
   // camera an projection
-  widget.getScene().getCamera().lookAt(-20, 20, 20, 0, 0, 0);
+  widget.getScene().getCamera().lookAt(-5, 5, 5, 0, 0, 0);
   widget.getScene().getProjection().mode = qtgl::GLProjectionMode::PRESPECTIVE;
 
   // skybox

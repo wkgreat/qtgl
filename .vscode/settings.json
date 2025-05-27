@@ -94,7 +94,9 @@
         "valarray": "cpp",
         "cwctype": "cpp",
         "coroutine": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "bitset": "cpp",
+        "cinttypes": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

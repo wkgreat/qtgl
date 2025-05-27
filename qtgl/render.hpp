@@ -18,7 +18,6 @@ class GLRenderWidget : public QWidget {
   GLScene scene;
   std::function<void(GLScene&)> beforeRender = [](GLScene& scene) {};
 
-  double wheelMoveForwardFactor = 1.0 / 120 * 20;
   int mouseLastX, mouseLastY;
   double mouseXRoundFactor = 0.01;
   double mouseYRoundFactor = -0.01;
@@ -82,7 +81,7 @@ class GLRenderWidget : public QWidget {
     mouseLastY = pos.y();
   }
   void wheelEvent(QWheelEvent* event) override {  // 缩放
-    this->scene.getCamera().zoom(event->angleDelta().y() * wheelMoveForwardFactor);
+    this->scene.getCamera().zoom(event->angleDelta().y());
   }
 };
 

@@ -80,8 +80,16 @@ class GLCamera {
   }
 
   void zoom(double factor) {
+    double proj_near = 1;  // TODO near of projection
+    double nearest = 1;
+    factor = std::signbit(factor) ? -1.5 : 0.5;
     Eigen::Vector3d v(this->to_x - this->pos_x, this->to_y - this->pos_y, this->to_z - this->pos_z);
-    v = v.normalized() * factor;
+    double d = std::min(v.norm(), proj_near);
+    if (factor > 0 && d < nearest) {
+      // 太近，不在zoom in了
+      return;
+    }
+    v = v.normalized() * d * factor;
     Eigen::Vector3d from(this->pos_x, this->pos_y, this->pos_z);
     from = from + v;
     lookAt(from[0], from[1], from[2], this->to_x, this->to_y, this->to_z);
