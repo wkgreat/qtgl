@@ -5,8 +5,8 @@ namespace qtgl {
 
 GLScene::GLScene(double viewHeight, double viewWidth)
     : viewHeight(viewHeight), viewWidth(viewWidth) {
-  this->projection.height = viewHeight;
-  this->projection.width = viewWidth;
+  this->projection.setHeight(viewHeight);
+  this->projection.setWidth(viewWidth);
   this->shadermap[IlluminationModel::LAMBERTIAN] = new LambertianGLShader();
   this->shadermap[IlluminationModel::LAMBERTIAN_BLINN_PHONG] = new LambertialBlinnPhongGLShader();
   this->configuration = new GLSceneConfiguration(this);
@@ -36,11 +36,11 @@ Fragments& GLScene::getFragments() { return this->fragments; }
 GLProjection& GLScene::getProjection() { return this->projection; }
 void GLScene::setViewHeight(double h) {
   this->viewHeight = h;
-  this->projection.height = h;
+  this->projection.setHeight(h);
 }
 void GLScene::setViewWidth(double w) {
   this->viewWidth = w;
-  this->projection.width = w;
+  this->projection.setWidth(w);
 }
 void GLScene::setViewSize(double w, double h) {
   this->setViewWidth(w);
@@ -147,15 +147,6 @@ void GLScene::meshTransformToScreen(GLObject* obj) {
   // 视图变换 + 投影变换 + 视口变换
   obj->transformVerticesToScreen(this->transformMatrix);
 }
-
-// void GLScene::rasterize() {
-//   fragments = initFragmentsBuffer();  // TODO clear rather than init new
-
-//   for (GLObject* obj : objs) {
-//     meshTransformToScreen(obj);
-//     obj->rasterize(*this);
-//   }
-// }
 
 void GLScene::rasterize() {
   GLTriangleShader shader;

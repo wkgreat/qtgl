@@ -10,30 +10,32 @@ enum class GLProjectionMode {
 };
 
 class GLProjection {
- public:
+ private:
   double height;
   double width;
-  double near;
-  double far;
+  double _near;
+  double _far;
   double hfov = MathUtils::PI / 3;
   GLProjectionMode mode;
+
+ public:
   GLProjection()
-      : height(768), width(1024), near(1), far(2000), mode(GLProjectionMode::PRESPECTIVE) {}
+      : height(768), width(1024), _near(1), _far(2000), mode(GLProjectionMode::PRESPECTIVE) {}
   GLProjection(double height, double width, double near, double far, GLProjectionMode mode)
-      : height(height), width(width), near(near), far(far), mode(mode) {}
+      : height(height), width(width), _near(near), _far(far), mode(mode) {}
   Eigen::Matrix4d orthographicProjMatrix() {
     double vfov = hfov * (height / width);
-    double right = tan(hfov / 2) * near;
+    double right = tan(hfov / 2) * _near;
     double left = -right;
-    double top = tan(vfov / 2) * near;
+    double top = tan(vfov / 2) * _near;
     double bottom = -top;
 
     double m00 = 2 / (right - left);
     double m11 = 2 / (top - bottom);
-    double m22 = 2 / (near - far);
+    double m22 = 2 / (_near - _far);
     double m30 = -(right + left) / (right - left);
     double m31 = -(top + bottom) / (top - bottom);
-    double m32 = -(near + far) / (near - far);
+    double m32 = -(_near + _far) / (_near - _far);
 
     Eigen::Matrix4d projMtx;
     projMtx << m00, 0, 0, 0,  //
@@ -44,14 +46,14 @@ class GLProjection {
   }
   Eigen::Matrix4d perspectiveProjMatrix() {
     double vfov = hfov * (height / width);
-    double right = tan(hfov / 2) * near;
+    double right = tan(hfov / 2) * _near;
     double left = -right;
-    double top = tan(vfov / 2) * near;
+    double top = tan(vfov / 2) * _near;
     double bottom = -top;
     double m00 = 2 / (right - left);
     double m11 = 2 / (top - bottom);
-    double m22 = (far + near) / (far - near);
-    double m32 = -2 * near * far / (far - near);
+    double m22 = (_far + _near) / (_far - _near);
+    double m32 = -2 * _near * _far / (_far - _near);
     Eigen::Matrix4d projMtx;
     projMtx << m00, 0, 0, 0,  //
         0, m11, 0, 0,         //
@@ -66,5 +68,13 @@ class GLProjection {
       return perspectiveProjMatrix();
     }
   }
+  double getNear() const { return _near; }
+  double getFar() const { return _far; }
+  double getHfov() const { return hfov; }
+  double getAspect() const { return height / width; }
+  GLProjectionMode getMode() const { return mode; }
+  void setHeight(double height) { this->height = height; }
+  void setWidth(double width) { this->width = width; }
+  void setMode(GLProjectionMode mode) { this->mode = mode; }
 };
 }  // namespace qtgl

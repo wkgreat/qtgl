@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
 
   // camera an projection
   widget.getScene().getCamera().lookAt(-5, 5, 5, 0, 0, 0);
-  widget.getScene().getProjection().mode = qtgl::GLProjectionMode::PRESPECTIVE;
+  widget.getScene().getProjection().setMode(qtgl::GLProjectionMode::PRESPECTIVE);
 
   // skybox
   std::string px_path = "E:\\codes\\practice\\qtgl\\data\\box_zoom\\pos-x.jpg";
@@ -94,20 +94,6 @@ int main(int argc, char* argv[]) {
 
   window->setLayout(layout);
   window->show();
-
-  widget.getScene().calculateTransformMatrix();
-  std::cout << "World Position: " << std::endl;
-  qtgl::Vertice world_pos = {1, 1, 1, 1};
-  qtgl::Vertice screen_pos = world_pos.transpose() * widget.getScene().getTranformMatrix();
-  screen_pos = screen_pos / screen_pos[3];
-  std::cout << "screen_pos 2: " << std::endl;
-  std::cout << screen_pos[0] << "," << screen_pos[1] << "," << screen_pos[2] << "," << screen_pos[3]
-            << std::endl;
-  qtgl::Vertice world_pos_2;
-  world_pos_2 = widget.getScene().screenVerticeBackToWorldVertice(screen_pos);
-  std::cout << "World Position 2: " << std::endl;
-  std::cout << world_pos_2[0] << "," << world_pos_2[1] << "," << world_pos_2[2] << ","
-            << world_pos_2[3] << std::endl;
 
   return app.exec();
 }

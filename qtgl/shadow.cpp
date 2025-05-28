@@ -11,9 +11,9 @@ GLShadowMapping::GLShadowMapping(GLScene* scene, GLLight* lgt) {
     mapHeight = scene->getViewHeight();
     mapWidth = scene->getViewWidth();
     projection = scene->getProjection();
-    projection.height = mapHeight;
-    projection.width = mapWidth;
-    projection.mode = GLProjectionMode::PRESPECTIVE;
+    projection.setHeight(mapHeight);
+    projection.setWidth(mapWidth);
+    projection.setMode(GLProjectionMode::PRESPECTIVE);
     refreshDepthMap();
   }
   this->setEventBus(scene->getEventBus());
